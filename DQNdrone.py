@@ -3,15 +3,18 @@ from AirSimClient import *
 from argparse import ArgumentParser
 
 import numpy as np
-from cntk.core import Value
-from cntk.initializer import he_uniform
-from cntk.layers import Sequential, Convolution2D, Dense, default_options
-from cntk.layers.typing import Signature, Tensor
-from cntk.learners import adam, learning_rate_schedule, momentum_schedule, UnitType
-from cntk.logging import TensorBoardProgressWriter
-from cntk.ops import abs, argmax, element_select, less, relu, reduce_max, reduce_sum, square
-from cntk.ops.functions import CloneMethod, Function
-from cntk.train import Trainer
+# from cntk.core import Value
+# from cntk.initializer import he_uniform
+# from cntk.layers import Sequential, Convolution2D, Dense, default_options
+# from cntk.layers.typing import Signature, Tensor
+# from cntk.learners import adam, learning_rate_schedule, momentum_schedule, UnitType
+# from cntk.logging import TensorBoardProgressWriter
+# from cntk.ops import abs, argmax, element_select, less, relu, reduce_max, reduce_sum, square
+# from cntk.ops.functions import CloneMethod, Function
+# from cntk.train import Trainer
+
+import tensorflow as tf
+import tf.contrib.layers as layers
 
 import csv
 
@@ -232,15 +235,25 @@ def huber_loss(y, y_hat, delta):
     Returns:
         CNTK Graph Node
     """
-    half_delta_squared = 0.5 * delta * delta
+    # half_delta_squared = 0.5 * delta * delta
+    # error = y - y_hat
+    # abs_error = abs(error)
+
+    # less_than = 0.5 * square(error)
+    # more_than = (delta * abs_error) - half_delta_squared
+    # loss_per_sample = element_select(less(abs_error, delta), less_than, more_than)
+
+    # return reduce_sum(loss_per_sample, name='loss')
+
+    half_delta_squared = 0.5 * tf.square(delta)
     error = y - y_hat
-    abs_error = abs(error)
+    abs_error = tf.abs(error)
 
-    less_than = 0.5 * square(error)
+    less_than = 0.5 * tf.square(error)
     more_than = (delta * abs_error) - half_delta_squared
-    loss_per_sample = element_select(less(abs_error, delta), less_than, more_than)
+    loss_per_sample = tf.where(tf.less(abs_error, delta), less_than, more_than)
 
-    return reduce_sum(loss_per_sample, name='loss')
+    return tf.reduce_sum(loss_per_sample, name='loss')
 
 class DeepQAgent(object):
     """
@@ -270,45 +283,80 @@ class DeepQAgent(object):
         self._episode_rewards, self._episode_q_means, self._episode_q_stddev = [], [], []
 
         # Action Value model (used by agent to interact with the environment)
-        with default_options(activation=relu, init=he_uniform()):
-            self._action_value_net = Sequential([
-                Convolution2D((8, 8), 16, strides=4),
-                Convolution2D((4, 4), 32, strides=2),
-                Convolution2D((3, 3), 32, strides=1),
-                Dense(256, init=he_uniform(scale=0.01)),
-                Dense(nb_actions, activation=None, init=he_uniform(scale=0.01))
-            ])
-        self._action_value_net.update_signature(Tensor[input_shape])
+        # with default_options(activation=relu, init=he_uniform()):
+        #     self._action_value_net = Sequential([
+        #         Convolution2D((8, 8), 16, strides=4),
+        #         Convolution2D((4, 4), 32, strides=2),
+        #         Convolution2D((3, 3), 32, strides=1),
+        #         Dense(256, init=he_uniform(scale=0.01)),
+        #         Dense(nb_actions, activation=None, init=he_uniform(scale=0.01))
+        #     ])
+        # self._action_value_net.update_signature(Tensor[input_shape])
+
+        self.state_input = tf.placeholder(tf.float32, (None,) + self.input_shape)
+        self.action_input = tf.placeholder(tf.float32, (None,))
+        self.rewards_input = tf.placeholder(tf.float32, (None,))
+
+        #model
+        self._action_value_net = layers.conv2d(self.state_input, 16, activation=tf.nn.relu)
+        self._action_value_net = layers.max_pool2d(self._action_value_net, kernel_size=(2,2))
+        self._action_value_net = layers.conv2d(self._action_value_net, 32, activation=tf.nn.relu)
+        self._action_value_net = layers.max_pool2d(self._action_value_net, kernel_size=(2,2))
+        self._action_value_net = layers.conv2d(self._action_value_net, 32, activation=tf.nn.relu)
+        self._action_value_net = layers.max_pool2d(self._action_value_net, kernel_size=(2,2))
+
+        self._action_value_net = layers.fully_connected(self._action_value_net, 256, activation=tf.nn.tanh)
+        self._action_value_net = layers.fully_connected(self._action_value_net, nb_actions)
+
+        self._q_act = tf.reduce_sum(tf.multiply(tf.one_hot(self.action_input, depth=nb_actions), self._action_value_net), axis=1) #indexes by action, Q(s,a)
 
         # Target model used to compute the target Q-values in training, updated
         # less frequently for increased stability.
-        self._target_net = self._action_value_net.clone(CloneMethod.freeze)
+
+        self.target_q_input = tf.placeholder(tf.float32, self.input_shape)
+
+        self._target_net = layers.conv2d(self.input, 16, activation=tf.nn.relu)
+        self._target_net = layers.max_pool2d(self._target_net, kernel_size=(2,2))
+        self._target_net = layers.conv2d(self._target_net, 32, activation=tf.nn.relu)
+        self._target_net = layers.max_pool2d(self._target_net, kernel_size=(2,2))
+        self._target_net = layers.conv2d(self._target_net, 32, activation=tf.nn.relu)
+        self._target_net = layers.max_pool2d(self._target_net, kernel_size=(2,2))
+
+        self._target_net = layers.fully_connected(self._target_net, 256, activation=tf.nn.tanh)
+        self._target_net = layers.fully_connected(self._target_net, nb_actions)
+
+
+        self._target_q_next = tf.reduce_max(self._target_net, reduction_indices=[1])
+        self._y = self.rewards_input + gamma * self._target_q_next
 
         # Function computing Q-values targets as part of the computation graph
-        @Function
-        @Signature(post_states=Tensor[input_shape], rewards=Tensor[()], terminals=Tensor[()])
-        def compute_q_targets(post_states, rewards, terminals):
-            return element_select(
-                terminals,
-                rewards,
-                gamma * reduce_max(self._target_net(post_states), axis=0) + rewards,
-            )
+        # @Function
+        # @Signature(post_states=Tensor[input_shape], rewards=Tensor[()], terminals=Tensor[()])
+        # def compute_q_targets(post_states, rewards, terminals):
+        #     return element_select(
+        #         terminals,
+        #         rewards,
+        #         gamma * reduce_max(self._target_net(post_states), axis=0) + rewards,
+        #     )
 
-        # Define the loss, using Huber Loss (more robust to outliers)
-        @Function
-        @Signature(pre_states=Tensor[input_shape], actions=Tensor[nb_actions],
-                   post_states=Tensor[input_shape], rewards=Tensor[()], terminals=Tensor[()])
-        def criterion(pre_states, actions, post_states, rewards, terminals):
-            # Compute the q_targets
-            q_targets = compute_q_targets(post_states, rewards, terminals)
+        # # Define the loss, using Huber Loss (more robust to outliers)
+        # @Function
+        # @Signature(pre_states=Tensor[input_shape], actions=Tensor[nb_actions],
+        #            post_states=Tensor[input_shape], rewards=Tensor[()], terminals=Tensor[()])
+        # def criterion(pre_states, actions, post_states, rewards, terminals):
+        #     # Compute the q_targets
+        #     q_targets = compute_q_targets(post_states, rewards, terminals)
 
-            # actions is a 1-hot encoding of the action done by the agent
-            q_acted = reduce_sum(self._action_value_net(pre_states) * actions, axis=0)
+        #     # actions is a 1-hot encoding of the action done by the agent
+        #     q_acted = reduce_sum(self._action_value_net(pre_states) * actions, axis=0)
 
-            # Define training criterion as the Huber Loss function
-            return huber_loss(q_targets, q_acted, 1.0)
+        #     # Define training criterion as the Huber Loss function
+        #     return huber_loss(q_targets, q_acted, 1.0)
 
         # Adam based SGD
+        loss = huber_loss(self._y, self._q_act)
+
+
         lr_schedule = learning_rate_schedule(learning_rate, UnitType.minibatch)
         m_schedule = momentum_schedule(momentum)
         vm_schedule = momentum_schedule(0.999)
