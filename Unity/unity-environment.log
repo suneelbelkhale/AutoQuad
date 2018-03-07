@@ -1,0 +1,6 @@
+3/6/2018 10:52:01 PM
+ 
+Exception
+NullReferenceException: Object reference not set to an instance of an object
+CameraFollowScript.Awake () (at /Users/suneelbelkhale1/git/UnityDroneSim/Assets/CameraFollowScript.cs:9)
+
