@@ -1,0 +1,7 @@
+*.dll
+*.exe
+*.pyc
+*.pdb
+Unity/drone_sim_external_Data/
+Unity/drone_sim_windows_Data/
+Unity/drone_sim_Data/
