@@ -2,7 +2,7 @@ from unityagents import UnityEnvironment
 import time
 import numpy as np
 
-env = UnityEnvironment(file_name="drone_sim", worker_id=0)
+env = UnityEnvironment(file_name="drone_sim_player", worker_id=0)
 #print(env)
 #print("Success!")
 
@@ -23,10 +23,8 @@ for i in range(num_trajectories):
         brainInf = env.step()['DroneBrain']
         ob = brainInf.observations
         states = brainInf.states
-        #print(states)
         actions = brainInf.previous_actions[0]
         norm = np.linalg.norm(states[0][3:6] - states[0][9:12])
-        print(norm)
         done = norm < threshold
         if count % frequency == 0:
             states_taken.append(states[0])
