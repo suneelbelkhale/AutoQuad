@@ -19,12 +19,13 @@ model.add(Activation('relu'))
 model.add(Dense(64))
 model.add(Activation('relu'))
 model.add(Dense(2))
+model.add(Activation('tanh'))
 
 model.compile(loss='mean_squared_error',
               optimizer=Adam(lr=1e-4),
               metrics=['mean_squared_error'])
 
-num_epochs = 300
+num_epochs = 1500
 
 batch_size = 128
 model.fit(states_train,
