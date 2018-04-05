@@ -24,16 +24,17 @@ if load:
 
 threshold = 10
 
+# states = np.load("states.npy")
+# actions = np.load("actions.npy")
+# print('Num Batches Currently: ', states.shape[0])
 for i in range(max_trajectories):
     pause = input("press enter to start")
     done = False
     env.reset(train_mode=False)
-    count = 0
     episode_states = []
     episode_actions = [] 
     episode_obs = [] #images
     while not done:
-        count = (count + 1)
         brainInf = env.step()['DroneBrain']
         ob = brainInf.observations
         states = brainInf.states
@@ -52,15 +53,13 @@ for i in range(max_trajectories):
     end = input('Stop collecting Data(y/n): ') == 'y'
     if end:
         break
+
 obs_taken = np.array(obs_taken)
+# states_taken.extend(np.ndarray.tolist(states))
+# actions_taken.extend(np.ndarray.tolist(actions))
 states_taken = np.array(states_taken)
 actions_taken = np.array(actions_taken)
 np.save("images", obs_taken)
 np.save("states", states_taken)
 np.save("actions", actions_taken)
-env.close()
-    # print(ob[0].shape)
-    # print(states)
-    # print(done)
-    # print(brainInf)
-    # print("--------------------------")
+# print('Num Batches After Data Collection: ', states_taken.shape[0])
