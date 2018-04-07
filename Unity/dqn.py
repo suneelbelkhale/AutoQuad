@@ -7,7 +7,7 @@ from keras.layers import Dense, Conv2D, Flatten
 from keras.optimizers import Adam
 from unityagents import UnityEnvironment
 
-actions = [np.ones(3)]
+actions = [np.ones(3) for _ in range(3)] # [i for i in range(3)] # 0 left 1 straight 2 right
 class DQNAgent:
     def __init__(self, state_size, action_size):
         self.state_size = state_size
@@ -74,8 +74,8 @@ class DQNAgent:
 
 if __name__ == "__main__":
     env = UnityEnvironment(file_name="drone_sim_external", worker_id=0)
-    state_size = (13, 1)
-    action_size = 1
+    state_size = (128, 128, 1)
+    action_size = 3
     agent = DQNAgent(state_size, action_size)
     # agent.load("./save/cartpole-dqn.h5")
     done = False
@@ -83,17 +83,21 @@ if __name__ == "__main__":
     num_episodes = 1000
     for e in range(num_episodes):
         state = env.reset(train_mode=False)
-        state = np.reshape(state, [1, state_size])
+        state = state['DroneBrain'].observations
+        # print(len(state))
+        state = state[0]
+        # print(state.shape)
+        # state = np.reshape(state, [1, *state_size])
         for time in range(500):
             # env.render()
             action = agent.act(state)
             brainInf = env.step(action)['DroneBrain']
             #TODO: get next state, reward, terminal from brainInf
-            next_state = brainInf.states
-            reward = brainInf.reward
+            next_state = brainInf.observations[0]
+            reward = brainInf.rewards
             done = brainInf.local_done
             reward = reward if not done else -10
-            next_state = np.reshape(next_state, [1, state_size])
+            # next_state = np.reshape(next_state, [1, state_size])
             agent.remember(state, action, reward, next_state, done)
             state = next_state
             if done:
