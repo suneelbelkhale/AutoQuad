@@ -11,7 +11,7 @@ A joint project between ML@Berkeley and UAVs@Berkeley.
 
 1. Run `pip install unityagents` to get the mlagents python code
 2. Run `pip install numpy h5py tensorflow` (if you have a GPU, use `tensorflow-gpu`) 
-3. Build the Unity Drone environment into a binary
+3. Build the Unity Drone environment into a binary (<a href="https://github.com/UAVs-at-Berkeley/UnityDroneSim">UnityDroneSim repo</a>)
     1. Make sure that the Brain Mode attribute (look in the inspector) in the DroneBrain Game Object (under the DroneAcademy Game Object) is set to Player Mode (if you want to collect samples) and External Mode (if you want to run a trained model). If you are doing this for the first time, build one executable in each mode. You will need to rebuild every time you change the simulator.
     2. TO BUILD: File -> Build Settings, Build, and then save the binary/exe to the Unity/ folder of this repository (or somewhere in your python path). Save it as "drone_sim_player" (for player mode) or "drone_sim_external" (for external mode).
     3. See <a href="https://github.com/Unity-Technologies/ml-agents/blob/master/docs/Getting-Started-with-Balance-Ball.md">here</a> under the "Building Unity Environment" section for building help.
