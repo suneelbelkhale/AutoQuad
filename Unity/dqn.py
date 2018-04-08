@@ -7,7 +7,9 @@ from keras.layers import Dense, Conv2D, Flatten
 from keras.optimizers import Adam
 from unityagents import UnityEnvironment
 
-actions = [np.ones(3) for _ in range(3)] # [i for i in range(3)] # 0 left 1 straight 2 right
+actions = [i for i in range(3)] # 0 left 1 straight 2 right
+# actions = [np.ones(3) for _ in range(3)]
+
 class DQNAgent:
     def __init__(self, state_size, action_size):
         self.state_size = state_size
