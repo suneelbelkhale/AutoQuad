@@ -13,9 +13,6 @@ actions = [i for i in range(3)] # 0 left 1 straight 2 right
 
 class DQNAgent(Agent):
     def __init__(self, state_size, action_size):
-        # self.state_size = state_size
-        # self.action_size = action_size
-        # self.replay_buffer = deque(maxlen=2000)
         super().__init__(state_size, action_size)
         self.gamma = 0.95    # discount rate
         self.epsilon = 1.0  # exploration rate
@@ -81,11 +78,12 @@ class DQNAgent(Agent):
         if self.num_train_steps % self.target_hard_update_interval==0:
             self.target_model = keras.models.clone_model(self.model)
             self.target_model.set_weights(self.model.get_weights())
+
         if self.epsilon > self.epsilon_min:
             self.epsilon *= self.epsilon_decay
 
     def compute_reward(self, brainInf, nextBrainInf, action):
-        reward = nextBrainInf.states[0][1]
+        reward = nextBrainInf.states[0][1] * -1
         return reward
 
     def preprocess_observation(self, image):
@@ -106,25 +104,3 @@ if __name__ == "__main__":
     num_episodes = 1000
 
     runner.run(batch_size=batch_size,num_episodes=num_episodes)
-
-    # for e in range(num_episodes):
-    #     state = env.reset(train_mode=False)
-    #     state = state['DroneBrain'].observations
-    #     state = state[0]
-    #     for time in range(500):
-    #         action = agent.act(state)
-    #         brainInf = env.step(action)['DroneBrain']
-    #         true_states = brainInf.states[0]
-    #         reward = true_states[1]
-    #         next_state = agent.preprocess(brainInf.observations[0])
-    #         done = brainInf.local_done
-    #         collided = true_states[4] == 1
-    #         reward = reward if not collided else -200
-    #         agent.remember(state, action, reward, next_state, done)
-    #         state = next_state
-    #         if len(agent.replay_buffer) > batch_size:
-    #             agent.train(batch_size)
-    #         if done:
-    #             print("episode: {}/{}, score: {}, e: {:.2}"
-    #                   .format(e, num_episodes, time, agent.epsilon))
-    #             break
