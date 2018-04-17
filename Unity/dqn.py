@@ -25,6 +25,7 @@ class DQNAgent(Agent):
         self._build_model()
         self.target_hard_update_interval = 100
         self.num_train_steps = 0
+        self.state_size = state_size
 
     def _build_model(self):
         model = Sequential()
@@ -55,24 +56,31 @@ class DQNAgent(Agent):
 
     def train(self, batch_size):
         minibatch = self.sample(batch_size)
-        for so1, action, reward, so2, done in minibatch:
-            
+        observations = np.zeros(([batch_size]+list(self.state_size)))
+        next_observations = np.zeros(([batch_size]+list(self.state_size)))
+        actions = np.zeros(batch_size)
+        rewards = np.zeros(batch_size)
+        dones = np.zeros(batch_size)
+        for i, (so1, action, reward, so2, done) in enumerate(minibatch):
             state, obs = so1
             next_state, next_obs = so2
-
-            target_vector = self.target_model.predict(next_obs)
-
-            target = reward
-            if not done:
-                target = (reward + self.gamma *
-                          np.max(target_vector[0]))
-            target_vector[0][action] = target
-
-            self.model.fit(obs, target_vector, epochs=1, verbose=1)
-            self.num_train_steps += 1
-            if self.num_train_steps % self.target_hard_update_interval==0:
-                self.target_model = keras.models.clone_model(self.model)
-                self.target_model.set_weights(self.model.get_weights())
+            observations[i] = obs
+            next_observations[i] = next_obs
+            actions[i] = action
+            rewards[i] = reward
+            if done == True:
+                dones[i] = 1
+            else:
+                dones[i] = 0
+        targets = self.target_model.predict(next_observations)
+        target = np.where(dones == 0, rewards + self.gamma * np.max(targets, axis=1), rewards)
+        for i in range(batch_size):
+            targets[i][actions.astype(int)[i]] = target[i]
+        self.model.fit(observations, targets, epochs=1, verbose=1)
+        self.num_train_steps += 1
+        if self.num_train_steps % self.target_hard_update_interval==0:
+            self.target_model = keras.models.clone_model(self.model)
+            self.target_model.set_weights(self.model.get_weights())
         if self.epsilon > self.epsilon_min:
             self.epsilon *= self.epsilon_decay
 
