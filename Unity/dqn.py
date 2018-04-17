@@ -83,7 +83,7 @@ class DQNAgent(Agent):
             self.epsilon *= self.epsilon_decay
 
     def compute_reward(self, brainInf, nextBrainInf, action):
-        reward = nextBrainInf.states[0][1] * -1
+        reward = nextBrainInf.states[0][1] * -1 + nextBrainInf.states[0][-1] * -1000
         return reward
 
     def preprocess_observation(self, image):
