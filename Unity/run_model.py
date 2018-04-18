@@ -1,4 +1,5 @@
 from unityagents import UnityEnvironment
+import numpy as np
 
 class RunAgent:
 
@@ -17,6 +18,8 @@ class RunAgent:
             brainInf = self._env.reset(train_mode=train_mode)['DroneBrain']
             p_observation = self._agent.preprocess_observation(brainInf.observations[0])
 
+            rewards = []
+
             for time in range(max_episode_length):
                 #generalized act function takes in state and observations (images)
 
@@ -26,6 +29,8 @@ class RunAgent:
                 
                 done = brainInf.local_done
                 reward = self._agent.compute_reward(brainInf, nextBrainInf, action)
+                rewards.append(reward)
+
                 next_p_observation = self._agent.preprocess_observation(nextBrainInf.observations[0])
 
                 #stores processed things
@@ -42,8 +47,7 @@ class RunAgent:
                         self._agent.train(batch_size)
 
                 if done:
-                    print("episode: {}/{}, score: {}"
-                          .format(e, num_episodes, time))
+                    print("episode: {}/{}, step: {}, reward: {}".format(e, num_episodes, time, np.mean(rewards)))
                     break
 
 

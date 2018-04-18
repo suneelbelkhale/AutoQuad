@@ -91,7 +91,6 @@ class DQNAgent(Agent):
 
 if __name__ == "__main__":
 
-
     # env = UnityEnvironment(file_name="drone_sim_external", worker_id=0)
     state_size = (128, 128, 1)
     action_size = 3
@@ -103,4 +102,4 @@ if __name__ == "__main__":
     batch_size = 32
     num_episodes = 1000
 
-    runner.run(batch_size=batch_size,num_episodes=num_episodes)
+    runner.run(batch_size=batch_size, num_episodes=num_episodes, train_mode=True)
