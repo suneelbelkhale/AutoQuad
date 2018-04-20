@@ -7,5 +7,6 @@ Unity/*.log
 Unity/drone_sim_external_Data/
 Unity/drone_sim_player_Data/
 
+Unity/linux_builds/
 *.npy
 *.h5
