@@ -8,6 +8,8 @@ from keras.optimizers import Adam
 from run_model import RunAgent
 from agent import Agent
 import keras
+from yaml_loader import read_params
+
 actions = [i for i in range(3)] # 0 left 1 straight 2 right
 # actions = [np.ones(3) for _ in range(3)]
 
@@ -83,7 +85,7 @@ class DQNAgent(Agent):
             self.epsilon *= self.epsilon_decay
 
     def compute_reward(self, brainInf, nextBrainInf, action):
-        reward = nextBrainInf.states[0][1] * -1 + nextBrainInf.states[0][-1] * -1000
+        reward = nextBrainInf.vector_observations[0][1] * -1 + nextBrainInf.vector_observations[0][-1] * -1000
         return reward
 
     def preprocess_observation(self, image):
@@ -91,15 +93,18 @@ class DQNAgent(Agent):
 
 if __name__ == "__main__":
 
+    params = read_params("yamls/mac_dqn.yaml")
+
     # env = UnityEnvironment(file_name="drone_sim_external", worker_id=0)
     state_size = (128, 128, 1)
     action_size = 3
     agent = DQNAgent(state_size, action_size)
 
-    runner = RunAgent(agent, "drone_sim_external")
+    runner = RunAgent(agent, params['system']['drone_sim'])
 
     # done = False
-    batch_size = 32
-    num_episodes = 1000
+    batch_size = params['train']['batch_size']
+    num_episodes = params['train']['num_episodes']
+    max_episode_length = params['train']['max_episode_length']
 
-    runner.run(batch_size=batch_size, num_episodes=num_episodes, train_mode=True)
+    runner.run(batch_size=batch_size, num_episodes=num_episodes, max_episode_length=max_episode_length, train_mode=True)

@@ -1,0 +1,14 @@
+# YAML for Mac DQN configuration
+
+train:
+  max_episode_length: 1000
+  num_episodes: 1000
+  batch_size: 32
+
+system: 
+  os: "mac"
+  arch: "x86_64"
+  drone_sim: "drone_sim_external"
+
+
+#TODO add model specific params

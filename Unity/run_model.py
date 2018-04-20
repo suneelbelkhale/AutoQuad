@@ -10,34 +10,38 @@ class RunAgent:
     def create_env(self, file_name):
         self._env = UnityEnvironment(file_name=file_name, worker_id=0)
     
-    def run(self, batch_size=32, num_episodes=1, max_episode_length=500, train_period=3, train_after_episode=False, train_mode=False):
-        done = False
+    def run(self, batch_size=32, num_episodes=1, max_episode_length=1000, train_period=3, train_after_episode=False, train_mode=False):
 
         for e in range(num_episodes):
             #reset
             brainInf = self._env.reset(train_mode=train_mode)['DroneBrain']
-            p_observation = self._agent.preprocess_observation(brainInf.observations[0])
+            # import ipdb; ipdb.set_trace()
+
+            p_observation = self._agent.preprocess_observation(brainInf.visual_observations[0])
 
             rewards = []
+            done = False
+            
+            print("-- Episode %d --" % e)
 
             for time in range(max_episode_length):
                 #generalized act function takes in state and observations (images)
 
-                action = self._agent.act(brainInf.states[0], p_observation)
+                action = self._agent.act(brainInf.vector_observations[0], p_observation)
 
                 nextBrainInf = self._env.step(action)['DroneBrain']
                 
-                done = brainInf.local_done
+                done = brainInf.local_done[0]
                 reward = self._agent.compute_reward(brainInf, nextBrainInf, action)
                 rewards.append(reward)
 
-                next_p_observation = self._agent.preprocess_observation(nextBrainInf.observations[0])
+                next_p_observation = self._agent.preprocess_observation(nextBrainInf.visual_observations[0])
 
                 #stores processed things
-                self._agent.store_sample((  (brainInf.states[0], p_observation), 
+                self._agent.store_sample((  (brainInf.vector_observations[0], p_observation), 
                                             action,
                                             reward,
-                                            (nextBrainInf.states[0], next_p_observation),
+                                            (nextBrainInf.vector_observations[0], next_p_observation),
                                             done    ))
 
 
