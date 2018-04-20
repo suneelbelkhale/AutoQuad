@@ -32,6 +32,7 @@ class RunAgent:
                 nextBrainInf = self._env.step(action)['DroneBrain']
                 
                 done = brainInf.local_done[0]
+                #print(brainInf.local_done)
                 reward = self._agent.compute_reward(brainInf, nextBrainInf, action)
                 rewards.append(reward)
 

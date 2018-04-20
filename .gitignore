@@ -6,7 +6,8 @@
 Unity/*.log
 Unity/drone_sim_external_Data/
 Unity/drone_sim_player_Data/
-
+Unity/drone_sim_external_linux_headless.x86_64
+Unity/drone_sim_external_linux_headless_Data/
 Unity/linux_builds/
 *.npy
 *.h5

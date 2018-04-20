@@ -93,7 +93,7 @@ class DQNAgent(Agent):
 
 if __name__ == "__main__":
 
-    params = read_params("yamls/mac_dqn.yaml")
+    params = read_params("yamls/linux_dqn.yaml")
 
     # env = UnityEnvironment(file_name="drone_sim_external", worker_id=0)
     state_size = (128, 128, 1)
