@@ -4,11 +4,13 @@ train:
   max_episode_length: 1000
   num_episodes: 1000
   batch_size: 32
+  model_file: "dqn_model.h5"
+  train_period: 5
+  train_after_episode: False
 
 system: 
   os: "mac"
   arch: "x86_64"
   drone_sim: "drone_sim_external"
-
 
 #TODO add model specific params

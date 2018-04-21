@@ -3,16 +3,23 @@ import numpy as np
 
 class RunAgent:
 
-    def __init__(self, agent, env_name):
+    def __init__(self, agent, args):
         self._agent = agent
-        self.create_env(env_name)
+        self.env_name = args['system']['drone_sim']
+        self.create_env(self.env_name)
+        self.max_episode_length = args['train']['max_episode_length']
+        self.num_episodes = args['train']['num_episodes']
+        self.batch_size = args['train']['batch_size']
+        self.train_period = args['train']['train_period']
+        self.train_after_episode = args['train']['train_after_episode']
+        self.model_file = args['train']['model_file']
 
     def create_env(self, file_name):
         self._env = UnityEnvironment(file_name=file_name, worker_id=0)
     
-    def run(self, batch_size=32, num_episodes=1, max_episode_length=1000, train_period=3, train_after_episode=False, train_mode=False):
+    def run(self, train_mode=True): #batch_size=32, num_episodes=1, max_episode_length=1000, train_period=3, train_after_episode=False, train_mode=False):
 
-        for e in range(num_episodes):
+        for e in range(self.num_episodes):
             #reset
             brainInf = self._env.reset(train_mode=train_mode)['DroneBrain']
             # import ipdb; ipdb.set_trace()
@@ -24,7 +31,7 @@ class RunAgent:
             
             print("-- Episode %d --" % e)
 
-            for time in range(max_episode_length):
+            for time in range(self.max_episode_length):
                 #generalized act function takes in state and observations (images)
 
                 action = self._agent.act(brainInf.vector_observations[0], p_observation)
@@ -47,12 +54,12 @@ class RunAgent:
 
 
                 #train every experience here
-                if not train_after_episode and len(self._agent.replay_buffer) > batch_size:
-                    if time % train_period == 0:
-                        self._agent.train(batch_size)
+                if not self.train_after_episode and len(self._agent.replay_buffer) > self.batch_size:
+                    if time % self.train_period == 0:
+                        self._agent.train(self.batch_size)
 
                 if done:
-                    print("episode: {}/{}, step: {}, reward: {}".format(e, num_episodes, time, np.mean(rewards)))
+                    print("episode: {}/{}, step: {}, reward: {}".format(e, self.num_episodes, time, np.mean(rewards)))
                     break
 
 
@@ -60,6 +67,9 @@ class RunAgent:
                 brainInf = nextBrainInf
 
             # train after episode
-            if train_after_episode and len(self._agent.replay_buffer) > batch_size:
-                for i in range(time // train_period):
-                    self._agent.train(batch_size)
+            if self.train_after_episode and len(self._agent.replay_buffer) > self.batch_size:
+                for i in range(time // self.train_period):
+                    self._agent.train(self.batch_size)
+
+            # save after an episode
+            self._agent.save(self.model_file)

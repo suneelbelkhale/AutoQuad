@@ -100,11 +100,12 @@ if __name__ == "__main__":
     action_size = 3
     agent = DQNAgent(state_size, action_size)
 
-    runner = RunAgent(agent, params['system']['drone_sim'])
+    runner = RunAgent(agent, params)
 
     # done = False
-    batch_size = params['train']['batch_size']
-    num_episodes = params['train']['num_episodes']
-    max_episode_length = params['train']['max_episode_length']
+    #batch_size = params['train']['batch_size']
+    #num_episodes = params['train']['num_episodes']
+    #max_episode_length = params['train']['max_episode_length']
 
-    runner.run(batch_size=batch_size, num_episodes=num_episodes, max_episode_length=max_episode_length, train_mode=True)
+    #runner.run(batch_size=batch_size, num_episodes=num_episodes, max_episode_length=max_episode_length, train_mode=True)
+    runner.run(train_mode=True)
