@@ -14,7 +14,7 @@ inference:
   num_inference_episodes: 10
 
 gpu:
-  device: 0 #-1 means use cpu
+  device: 1 #-1 means use cpu
 
 
 system: 

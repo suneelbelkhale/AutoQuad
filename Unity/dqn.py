@@ -52,24 +52,22 @@ class DQNAgent(Agent):
         state_input = Input(shape=self.state_size)
 
         state_model = Sequential()
-        state_model.add(Dense(32, activation='relu'))
+        state_model.add(Dense(32, activation='relu', input_shape=self.state_size))
         state_model.add(Dense(8, activation='relu'))
 
         #combining
 
         concatenated = keras.layers.concatenate([observation_model(observation_input), state_model(state_input)])
-        output = Dense(64, activation='relu')(concatenate)
+        output = Dense(64, activation='relu')(concatenated)
         output = Dense(self.action_size, activation='linear')(output)
 
         self.model = Model(inputs=[observation_input, state_input], outputs=output)
 
-        model.add()
-        model.compile(loss='mse',
+        self.model.compile(loss='mse',
                       optimizer=Adam(lr=self.learning_rate))
 
-        self.model = model
-        self.target_model = keras.models.clone_model(model)
-        self.target_model.set_weights(model.get_weights())
+        self.target_model = keras.models.clone_model(self.model)
+        self.target_model.set_weights(self.model.get_weights())
 
 
     # def remember(self, state, action, reward, next_state, done):
@@ -144,7 +142,7 @@ if __name__ == "__main__":
     state_size = (5,)
     action_size = 3
     max_replay_len = params['train']['max_replay_len']
-    agent = DQNAgent(observation_size, action_size, max_replay_len=max_replay_len)
+    agent = DQNAgent(observation_size, state_size, action_size, max_replay_len=max_replay_len)
 
     runner = RunAgent(agent, params)
 
