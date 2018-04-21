@@ -2,8 +2,8 @@
 import random
 import numpy as np
 from collections import deque
-from keras.models import Sequential
-from keras.layers import Dense, Conv2D, Flatten
+from keras.models import Sequential, Model
+from keras.layers import Dense, Conv2D, Flatten, Input
 from keras.optimizers import Adam
 from run_model import RunAgent
 from agent import Agent
@@ -17,10 +17,10 @@ actions = [i for i in range(3)] # 0 left 1 straight 2 right
 # actions = [np.ones(3) for _ in range(3)]
 
 class DQNAgent(Agent):
-    def __init__(self, state_size, action_size, max_replay_len=2000):
+    def __init__(self, observation_size, state_size, action_size, max_replay_len=2000):
 
-        super().__init__(state_size, action_size, max_replay_len=max_replay_len)
-        self.gamma = 0.95    # discount rate
+        super().__init__(observation_size, state_size, action_size, max_replay_len=max_replay_len)
+        self.gamma = 0.99    # discount rate
         self.epsilon = 1.0  # exploration rate
         self.epsilon_min = 0.01
         self.epsilon_decay = 0.995
@@ -28,25 +28,49 @@ class DQNAgent(Agent):
         self._build_model()
         self.target_hard_update_interval = 100
         self.num_train_steps = 0
-        self.state_size = state_size
 
     def _build_model(self):
-        model = Sequential()
-        model.add(Conv2D(64, kernel_size=(4, 4), strides=2,
+
+        #processing images
+
+        observation_input = Input(shape=self.observation_size)
+
+        observation_model = Sequential()
+        observation_model.add(Conv2D(64, kernel_size=(4, 4), strides=2,
                          activation='relu',
-                         input_shape=self.state_size))
-        model.add(Conv2D(64, kernel_size=(4, 4), strides=2,
+                         input_shape=self.observation_size))
+        observation_model.add(Conv2D(64, kernel_size=(4, 4), strides=2,
                          activation='relu'))
-        model.add(Conv2D(32, kernel_size=(3, 3), strides=1,
+        observation_model.add(Conv2D(32, kernel_size=(3, 3), strides=1,
                          activation='relu'))
-        model.add(Flatten())
-        model.add(Dense(512, activation='relu'))
-        model.add(Dense(self.action_size, activation='linear'))
+        observation_model.add(Flatten())
+        observation_model.add(Dense(128, activation='relu'))
+        observation_model.add(Dense(16, activation='relu'))
+        
+        #processing state
+
+        state_input = Input(shape=self.state_size)
+
+        state_model = Sequential()
+        state_model.add(Dense(32, activation='relu'))
+        state_model.add(Dense(8, activation='relu'))
+
+        #combining
+
+        concatenated = keras.layers.concatenate([observation_model(observation_input), state_model(state_input)])
+        output = Dense(64, activation='relu')(concatenate)
+        output = Dense(self.action_size, activation='linear')(output)
+
+        self.model = Model(inputs=[observation_input, state_input], outputs=output)
+
+        model.add()
         model.compile(loss='mse',
                       optimizer=Adam(lr=self.learning_rate))
+
         self.model = model
         self.target_model = keras.models.clone_model(model)
         self.target_model.set_weights(model.get_weights())
+
 
     # def remember(self, state, action, reward, next_state, done):
     #     self.replay_buffer.append((state, action, reward, next_state, done))
@@ -54,16 +78,19 @@ class DQNAgent(Agent):
     def act(self, state, observation):
         if np.random.rand() <= self.epsilon:
             return actions[random.randrange(self.action_size)]
-        act_values = self.model.predict(observation)
+        act_values = self.model.predict([observation, state])
         return actions[np.argmax(act_values[0])] # returns action
 
     def train(self, batch_size):
         minibatch = self.sample(batch_size)
-        observations = np.zeros(([batch_size]+list(self.state_size)))
-        next_observations = np.zeros(([batch_size]+list(self.state_size)))
+
+        observations = np.zeros(([batch_size]+list(self.observation_size)))
+        next_observations = np.zeros(([batch_size]+list(self.observation_size)))
+
         actions = np.zeros(batch_size)
         rewards = np.zeros(batch_size)
         dones = np.zeros(batch_size)
+
         for i, (so1, action, reward, so2, done) in enumerate(minibatch):
             state, obs = so1
             next_state, next_obs = so2
@@ -75,7 +102,7 @@ class DQNAgent(Agent):
                 dones[i] = 1
             else:
                 dones[i] = 0
-        targets = self.target_model.predict(next_observations)
+        targets = self.target_model.predict([next_observations, next_state])
         target = np.where(dones == 0, rewards + self.gamma * np.max(targets, axis=1), rewards)
         for i in range(batch_size):
             targets[i][actions.astype(int)[i]] = target[i]
@@ -89,8 +116,18 @@ class DQNAgent(Agent):
             self.epsilon *= self.epsilon_decay
 
     def compute_reward(self, brainInf, nextBrainInf, action):
-        reward = nextBrainInf.vector_observations[0][1] * -1 + nextBrainInf.vector_observations[0][-1] * -1000
-        return reward
+        # reward = nextBrainInf.vector_observations[0][1] * -1 + nextBrainInf.vector_observations[0][-1] * -1000
+        # return reward
+        return self.heading_reward(brainInf, nextBrainInf, action)
+
+    def heading_reward(self, brainInf, nextBrainInf, action):
+        #heading
+        reward = 0
+        #exponential function of dist
+        # reward += nextBrainInf.vector_observations[0][1] * -1 
+        reward += nextBrainInf.vector_observations[0][-1] * -1000 #collision
+        reward += abs(nextBrainInf.vector_observations[0][0]) * 0.1 #heading diff (normalized -1 to 1 already)
+        reward += 2000 if nextBrainInf.local_done[0] and nextBrainInf.vector_observations[0][-1] == 0 else 0 #terminal success reward
 
     def preprocess_observation(self, image):
         return image
@@ -103,10 +140,11 @@ if __name__ == "__main__":
         os.environ["CUDA_VISIBLE_DEVICES"]=str(params['gpu']['device'])
 
     # env = UnityEnvironment(file_name="drone_sim_external", worker_id=0)
-    state_size = (128, 128, 1)
+    observation_size = (128, 128, 1)
+    state_size = (5,)
     action_size = 3
     max_replay_len = params['train']['max_replay_len']
-    agent = DQNAgent(state_size, action_size, max_replay_len=max_replay_len)
+    agent = DQNAgent(observation_size, action_size, max_replay_len=max_replay_len)
 
     runner = RunAgent(agent, params)
 
