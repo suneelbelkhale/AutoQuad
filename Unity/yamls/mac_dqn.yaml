@@ -4,9 +4,17 @@ train:
   max_episode_length: 1000
   num_episodes: 1000
   batch_size: 32
+  max_replay_len: 2000
   model_file: "dqn_model.h5"
   train_period: 5
   train_after_episode: False
+
+inference:
+  only_inference: True
+  num_inference_episodes: 10
+
+gpu:
+  device: -1 #-1 means use cpu
 
 system: 
   os: "mac"

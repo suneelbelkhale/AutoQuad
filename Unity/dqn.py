@@ -10,12 +10,16 @@ from agent import Agent
 import keras
 from yaml_loader import read_params
 
+import os
+
+
 actions = [i for i in range(3)] # 0 left 1 straight 2 right
 # actions = [np.ones(3) for _ in range(3)]
 
 class DQNAgent(Agent):
-    def __init__(self, state_size, action_size):
-        super().__init__(state_size, action_size)
+    def __init__(self, state_size, action_size, max_replay_len=2000):
+
+        super().__init__(state_size, action_size, max_replay_len=max_replay_len)
         self.gamma = 0.95    # discount rate
         self.epsilon = 1.0  # exploration rate
         self.epsilon_min = 0.01
@@ -93,12 +97,16 @@ class DQNAgent(Agent):
 
 if __name__ == "__main__":
 
-    params = read_params("yamls/linux_dqn.yaml")
+    params = read_params("yamls/mac_dqn.yaml")
+
+    if params['gpu']['device'] >= 0:
+        os.environ["CUDA_VISIBLE_DEVICES"]=str(params['gpu']['device'])
 
     # env = UnityEnvironment(file_name="drone_sim_external", worker_id=0)
     state_size = (128, 128, 1)
     action_size = 3
-    agent = DQNAgent(state_size, action_size)
+    max_replay_len = params['train']['max_replay_len']
+    agent = DQNAgent(state_size, action_size, max_replay_len=max_replay_len)
 
     runner = RunAgent(agent, params)
 
@@ -108,4 +116,4 @@ if __name__ == "__main__":
     #max_episode_length = params['train']['max_episode_length']
 
     #runner.run(batch_size=batch_size, num_episodes=num_episodes, max_episode_length=max_episode_length, train_mode=True)
-    runner.run(train_mode=True)
+    runner.run()
