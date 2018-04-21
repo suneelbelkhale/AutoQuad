@@ -8,7 +8,8 @@ from keras.optimizers import Adam
 import keras
 
 class Agent:
-    def __init__(self, state_size, action_size, max_replay_len=2000):
+    def __init__(self, observation_size, state_size, action_size, max_replay_len=2000):
+        self.observation_size = observation_size
         self.state_size = state_size
         self.action_size = action_size
         self.replay_buffer = deque(maxlen=max_replay_len)
