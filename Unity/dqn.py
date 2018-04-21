@@ -97,7 +97,7 @@ class DQNAgent(Agent):
 
 if __name__ == "__main__":
 
-    params = read_params("yamls/mac_dqn.yaml")
+    params = read_params("yamls/linux_dqn.yaml")
 
     if params['gpu']['device'] >= 0:
         os.environ["CUDA_VISIBLE_DEVICES"]=str(params['gpu']['device'])
