@@ -109,7 +109,7 @@ class DQNAgent(Agent):
         target = np.where(dones == 0, rewards + self.gamma * np.max(targets, axis=1), rewards)
         for i in range(batch_size):
             targets[i][actions.astype(int)[i]] = target[i]
-        self.model.fit([observations,states], targets, epochs=1, verbose=0)
+        self.model.fit([observations, states], targets, epochs=1, verbose=0)
         self.num_train_steps += 1
         if self.num_train_steps % self.target_hard_update_interval==0:
             self.target_model = keras.models.clone_model(self.model)
@@ -119,25 +119,34 @@ class DQNAgent(Agent):
             self.epsilon *= self.epsilon_decay
 
     def compute_reward(self, brainInf, nextBrainInf, action):
-        # reward = nextBrainInf.vector_observations[0][1] * -1 + nextBrainInf.vector_observations[0][-1] * -1000
         # return reward
         return self.heading_reward(brainInf, nextBrainInf, action)
 
     def heading_reward(self, brainInf, nextBrainInf, action):
-        #heading
         reward = 0
         #exponential function of dist
-        # reward += nextBrainInf.vector_observations[0][1] * -1 
-        reward += nextBrainInf.vector_observations[0][-1] * -1000 #collision
-        reward += abs(nextBrainInf.vector_observations[0][0]) * 0.1 #heading diff (normalized -1 to 1 already)
-        reward += 2000 if nextBrainInf.local_done[0] and nextBrainInf.vector_observations[0][-1] == 0 else 0 #terminal success reward
+        collision = nextBrainInf.vector_observations[0][-1]
+        print(collision)
+        goal = nextBrainInf.local_done[0] and not collision
+        if goal:
+        	print("reached goal")
+        reward += collision * -1000
+        reward += abs(nextBrainInf.vector_observations[0][0]) * -0.1 # heading diff (normalized -1 to 1 already)
+        reward += 5000 * goal
+        return reward
+
+    def compute_reward_distance(self, brainInf, nextBrainInf, action, done):
+        collision = nextBrainInf.vector_observations[0][-1]
+        goal = done and not collision
+        reward = nextBrainInf.vector_observations[0][1] * -0.1 + collision * -10000 + goal * 10000
+        return reward
 
     def preprocess_observation(self, image):
         return image
 
 if __name__ == "__main__":
 
-    params = read_params("yamls/linux_dqn.yaml")
+    params = read_params("yamls/windows_dqn.yaml")
 
     if params['gpu']['device'] >= 0:
         os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"

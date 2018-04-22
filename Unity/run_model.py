@@ -1,5 +1,7 @@
 from unityagents import UnityEnvironment
 import numpy as np
+import time
+import sys
 
 class RunAgent:
 
@@ -37,6 +39,8 @@ class RunAgent:
     def run_training(self, train_mode=True): #batch_size=32, num_episodes=1, max_episode_length=1000, train_period=3, train_after_episode=False, train_mode=False):
 
         for e in range(self.num_episodes):
+            walltime = time.time()
+
             #reset
             brainInf = self._env.reset(train_mode=train_mode)['DroneBrain']
             # import ipdb; ipdb.set_trace()
@@ -47,8 +51,9 @@ class RunAgent:
             done = False
             
             print("-- Episode %d --" % e)
+            sys.stdout.flush()
 
-            for time in range(self.max_episode_length):
+            for t in range(self.max_episode_length):
                 #generalized act function takes in state and observations (images)
 
                 action = self._agent.act(brainInf.vector_observations, p_observation)
@@ -72,11 +77,16 @@ class RunAgent:
 
                 #train every experience here
                 if not self.train_after_episode and len(self._agent.replay_buffer) > self.batch_size:
-                    if time % self.train_period == 0:
+                    if t % self.train_period == 0:
                         self._agent.train(self.batch_size)
 
+                if t % 100 == 0:
+                    print("step", t)
+                    sys.stdout.flush()
+
                 if done:
-                    print("episode terminated: {}/{}, step: {}, reward: {}".format(e, self.num_episodes, time, np.mean(rewards)))
+                    print("episode terminated: {}/{}, step: {}, reward: {}, time: {}".format(e, self.num_episodes, t, np.mean(rewards), time.time() - walltime))
+                    sys.stdout.flush()
                     break
 
 
@@ -85,17 +95,23 @@ class RunAgent:
 
             # train after episode
             if self.train_after_episode and len(self._agent.replay_buffer) > self.batch_size:
-                for i in range(time // self.train_period):
+                walltime = time.time()
+                for i in range(t // self.train_period):
                     self._agent.train(self.batch_size)
+                print("training complete in: {}".format(time.time() - walltime))
+                sys.stdout.flush()
 
             # save after an episode
-            self._agent.save(self.model_file)
+            if e % 10 == 0:
+                self._agent.save(self.model_file)
 
     def run_inference(self, train_mode=False):
         self._agent.load(self.model_file)
 
         #reset
         for e in range(self.num_inference_episodes):
+            walltime = time.time()
+
             #reset
             brainInf = self._env.reset(train_mode=train_mode)['DroneBrain']
             # import ipdb; ipdb.set_trace()
@@ -107,7 +123,7 @@ class RunAgent:
             
             print("-- Episode %d --" % e)
 
-            for time in range(self.max_episode_length):
+            for t in range(self.max_episode_length):
                 #generalized act function takes in state and observations (images)
 
                 action = self._agent.act(brainInf.vector_observations, p_observation)
@@ -120,7 +136,8 @@ class RunAgent:
                 rewards.append(reward)
 
                 if done:
-                    print("episode terminated: {}/{}, step: {}, reward: {}".format(e, self.num_episodes, time, np.mean(rewards)))
+                    print("episode terminated: {}/{}, step: {}, reward: {}, time: {}".format(
+                        e, self.num_episodes, t, np.mean(rewards), time.time() - walltime))
                     break
 
                 brainInf = nextBrainInf
