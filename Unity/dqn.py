@@ -140,6 +140,9 @@ if __name__ == "__main__":
     params = read_params("yamls/linux_dqn.yaml")
 
     if params['gpu']['device'] >= 0:
+        os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
+        #from tensorflow.python.client import device_lib
+        #print(device_lib.list_local_devices())
         os.environ["CUDA_VISIBLE_DEVICES"]=str(params['gpu']['device'])
 
     # env = UnityEnvironment(file_name="drone_sim_external", worker_id=0)
