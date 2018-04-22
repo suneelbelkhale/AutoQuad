@@ -111,7 +111,7 @@ class DQNAgent(Agent):
         target = np.where(dones == 0, rewards + self.gamma * np.max(targets, axis=1), rewards)
         for i in range(batch_size):
             targets[i][actions.astype(int)[i]] = target[i]
-        self.model.fit([observations, states], targets, epochs=1, verbose=0)
+        self.model.fit([observations, states], targets, epochs=1, verbose=1)
         self.num_train_steps += 1
         if self.num_train_steps % self.target_hard_update_interval==0:
             self.target_model = keras.models.clone_model(self.model)
@@ -127,6 +127,7 @@ class DQNAgent(Agent):
     def heading_reward(self, brainInf, nextBrainInf, action):
         reward = 0
         #exponential function of dist
+        reward += 10.0 / brainInf.vector_observations[0][1]
         collision = nextBrainInf.vector_observations[0][-1]
         # print(collision)
         #maintains state
@@ -134,8 +135,8 @@ class DQNAgent(Agent):
 
         goal = int(nextBrainInf.local_done[0] and not self.has_collided)
         reward += collision * -1000
-        reward += abs(nextBrainInf.vector_observations[0][0]) * -0.1 # heading diff (normalized -1 to 1 already)
-        reward += 5000 * goal
+        reward += abs(nextBrainInf.vector_observations[0][0]) * -10.0 # heading diff (normalized -1 to 1 already)
+        reward += 20000 * goal
 
         # if we are done, reset self.has_collided (counts as episode reset)
         if goal:

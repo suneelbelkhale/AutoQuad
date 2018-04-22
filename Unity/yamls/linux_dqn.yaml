@@ -4,10 +4,10 @@ train:
   max_episode_length: 5000
   num_episodes: 10000
   batch_size: 32
-  max_replay_len: 10000
+  max_replay_len: 2000
   model_file: "dqn_model.h5"
   train_period: 5
-  train_after_episode: False
+  train_after_episode: False 
 
 inference:
   only_inference: False
