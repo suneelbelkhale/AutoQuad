@@ -79,7 +79,7 @@ class DQNAgent(Agent):
         target = np.where(dones == 0, rewards + self.gamma * np.max(targets, axis=1), rewards)
         for i in range(batch_size):
             targets[i][actions.astype(int)[i]] = target[i]
-        self.model.fit(observations, targets, epochs=1, verbose=1)
+        self.model.fit(observations, targets, epochs=1, verbose=0)
         self.num_train_steps += 1
         if self.num_train_steps % self.target_hard_update_interval==0:
             self.target_model = keras.models.clone_model(self.model)
@@ -88,8 +88,10 @@ class DQNAgent(Agent):
         if self.epsilon > self.epsilon_min:
             self.epsilon *= self.epsilon_decay
 
-    def compute_reward(self, brainInf, nextBrainInf, action):
-        reward = nextBrainInf.vector_observations[0][1] * -1 + nextBrainInf.vector_observations[0][-1] * -1000
+    def compute_reward(self, brainInf, nextBrainInf, action, done):
+        collision = nextBrainInf.vector_observations[0][-1]
+        goal = done and not collision
+        reward = nextBrainInf.vector_observations[0][1] * -0.1 + collision * -10000 + goal * 10000
         return reward
 
     def preprocess_observation(self, image):
@@ -97,7 +99,7 @@ class DQNAgent(Agent):
 
 if __name__ == "__main__":
 
-    params = read_params("yamls/mac_dqn.yaml")
+    params = read_params("yamls/windows_dqn.yaml")
 
     if params['gpu']['device'] >= 0:
         os.environ["CUDA_VISIBLE_DEVICES"]=str(params['gpu']['device'])
