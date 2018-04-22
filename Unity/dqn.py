@@ -83,7 +83,9 @@ class DQNAgent(Agent):
         minibatch = self.sample(batch_size)
 
         observations = np.zeros(([batch_size]+list(self.observation_size)))
+        states = np.zeros(([batch_size]+list(self.state_size)))
         next_observations = np.zeros(([batch_size]+list(self.observation_size)))
+        next_states = np.zeros(([batch_size]+list(self.state_size)))
 
         actions = np.zeros(batch_size)
         rewards = np.zeros(batch_size)
@@ -92,19 +94,22 @@ class DQNAgent(Agent):
         for i, (so1, action, reward, so2, done) in enumerate(minibatch):
             state, obs = so1
             next_state, next_obs = so2
+            #print(next_state.shape)
             observations[i] = obs
+            states[i] = state
             next_observations[i] = next_obs
+            next_states[i] = next_state
             actions[i] = action
             rewards[i] = reward
             if done == True:
                 dones[i] = 1
             else:
                 dones[i] = 0
-        targets = self.target_model.predict([next_observations, next_state])
+        targets = self.target_model.predict([next_observations, next_states])
         target = np.where(dones == 0, rewards + self.gamma * np.max(targets, axis=1), rewards)
         for i in range(batch_size):
             targets[i][actions.astype(int)[i]] = target[i]
-        self.model.fit(observations, targets, epochs=1, verbose=0)
+        self.model.fit([observations, states], targets, epochs=1, verbose=0)
         self.num_train_steps += 1
         if self.num_train_steps % self.target_hard_update_interval==0:
             self.target_model = keras.models.clone_model(self.model)

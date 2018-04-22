@@ -56,7 +56,7 @@ class RunAgent:
             for t in range(self.max_episode_length):
                 #generalized act function takes in state and observations (images)
 
-                action = self._agent.act(brainInf.vector_observations[0], p_observation)
+                action = self._agent.act(brainInf.vector_observations, p_observation)
 
                 nextBrainInf = self._env.step(action)['DroneBrain']
                 
@@ -126,7 +126,7 @@ class RunAgent:
             for t in range(self.max_episode_length):
                 #generalized act function takes in state and observations (images)
 
-                action = self._agent.act(brainInf.vector_observations[0], p_observation)
+                action = self._agent.act(brainInf.vector_observations, p_observation)
 
                 nextBrainInf = self._env.step(action)['DroneBrain']
                 
