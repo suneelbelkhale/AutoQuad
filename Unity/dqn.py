@@ -126,9 +126,13 @@ class DQNAgent(Agent):
         reward = 0
         #exponential function of dist
         collision = nextBrainInf.vector_observations[0][-1]
+        print(collision)
+        goal = nextBrainInf.local_done[0] and not collision
+        if goal:
+        	print("reached goal")
         reward += collision * -1000
         reward += abs(nextBrainInf.vector_observations[0][0]) * -0.1 # heading diff (normalized -1 to 1 already)
-        reward += 5000 * (nextBrainInf.local_done[0] and not collision)
+        reward += 5000 * goal
         return reward
 
     def compute_reward_distance(self, brainInf, nextBrainInf, action, done):
