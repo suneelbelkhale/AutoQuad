@@ -29,6 +29,8 @@ class DQNAgent(Agent):
         self.target_hard_update_interval = 100
         self.num_train_steps = 0
 
+        self.has_collided = False
+
     def _build_model(self):
 
         #processing images
@@ -126,13 +128,19 @@ class DQNAgent(Agent):
         reward = 0
         #exponential function of dist
         collision = nextBrainInf.vector_observations[0][-1]
-        print(collision)
-        goal = nextBrainInf.local_done[0] and not collision
-        if goal:
-        	print("reached goal")
+        # print(collision)
+        #maintains state
+        self.has_collided = self.has_collided or collision
+
+        goal = int(nextBrainInf.local_done[0] and not self.has_collided)
         reward += collision * -1000
         reward += abs(nextBrainInf.vector_observations[0][0]) * -0.1 # heading diff (normalized -1 to 1 already)
         reward += 5000 * goal
+
+        # if we are done, reset self.has_collided (counts as episode reset)
+        if goal:
+            print("reached goal")
+            self.has_collided = False
         return reward
 
     def compute_reward_distance(self, brainInf, nextBrainInf, action, done):
