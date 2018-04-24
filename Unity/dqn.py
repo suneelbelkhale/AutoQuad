@@ -11,7 +11,9 @@ import keras
 from yaml_loader import read_params
 
 import os
+from parser import get_dqn_parser
 
+YAML_FILE = "yamls/mac_dqn.yaml"
 
 actions = [i for i in range(3)] # 0 left 1 straight 2 right
 # actions = [np.ones(3) for _ in range(3)]
@@ -152,9 +154,19 @@ class DQNAgent(Agent):
     def preprocess_observation(self, image):
         return image
 
-if __name__ == "__main__":
 
-    params = read_params("yamls/windows_dqn.yaml")
+if __name__ == "__main__":
+    parser = get_dqn_parser()
+    parsed_args = parser.parse_args()
+    # import ipdb; ipdb.set_trace();
+    yaml = YAML_FILE
+
+    #priority to argparser
+    # print(parsed_args)
+    if parsed_args.yaml:
+        yaml = parsed_args.yaml
+
+    params = read_params(yaml)
 
     if params['gpu']['device'] >= 0:
         os.environ["CUDA_VISIBLE_DEVICES"]=str(params['gpu']['device'])
@@ -166,12 +178,15 @@ if __name__ == "__main__":
     max_replay_len = params['train']['max_replay_len']
     agent = DQNAgent(observation_size, state_size, action_size, max_replay_len=max_replay_len)
 
-    runner = RunAgent(agent, params)
-
     # done = False
     #batch_size = params['train']['batch_size']
     #num_episodes = params['train']['num_episodes']
     #max_episode_length = params['train']['max_episode_length']
 
     #runner.run(batch_size=batch_size, num_episodes=num_episodes, max_episode_length=max_episode_length, train_mode=True)
-    runner.run()
+    if parsed_args.type != 2:
+        runner = RunAgent(agent, params)
+        runner.run()
+    else:
+        runner = RunAgent(agent, params, demonstrations=True)
+        runner.run_demonstrations()

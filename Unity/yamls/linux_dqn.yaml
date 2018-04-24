@@ -7,19 +7,25 @@ train:
   max_replay_len: 10000
   model_file: "dqn_model.h5"
   train_period: 5
+  train_on_demonstrations: True
   train_after_episode: False
 
 inference:
   only_inference: False
   num_inference_episodes: 10
 
+demonstrations:
+  state_file: "demonstrated_states.npz"
+  obs_file: "demonstrated_observations.npz"
+  act_file: "demonstrated_actions.npz"
+
 gpu:
   device: 1 #-1 means use cpu
-
 
 system: 
   os: "linux"
   arch: "x86_64"
   drone_sim: "drone_sim_external_linux_headless"
+  demonstration_drone_sim: "N/A"
 
 #TODO add model specific params

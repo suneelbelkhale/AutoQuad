@@ -10,5 +10,6 @@ Unity/drone_sim_external_linux_headless.x86_64
 Unity/drone_sim_external_linux_headless_Data/
 Unity/linux_builds/
 *.npy
+*.npz
 *.h5
 train_output.txt

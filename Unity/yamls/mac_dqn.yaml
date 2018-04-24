@@ -1,17 +1,23 @@
 # YAML for Mac DQN configuration
 
 train:
-  max_episode_length: 1000
+  max_episode_length: 5000
   num_episodes: 1000
   batch_size: 32
   max_replay_len: 2000
   model_file: "dqn_model.h5"
   train_period: 5
+  train_on_demonstrations: True
   train_after_episode: False
 
 inference:
   only_inference: True
   num_inference_episodes: 10
+
+demonstrations:
+  state_file: "demonstrated_states.npz"
+  obs_file: "demonstrated_observations.npz"
+  act_file: "demonstrated_actions.npz"
 
 gpu:
   device: -1 #-1 means use cpu
@@ -20,5 +26,6 @@ system:
   os: "mac"
   arch: "x86_64"
   drone_sim: "drone_sim_external"
+  demonstration_drone_sim: "drone_sim_player"
 
 #TODO add model specific params
