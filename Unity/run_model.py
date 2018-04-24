@@ -154,11 +154,11 @@ class RunAgent:
                         self._agent.train(self.batch_size)
 
                 if t % 100 == 0:
-                    print("step", t)
+                    #print("step", t)
                     sys.stdout.flush()
 
                 if done:
-                    print("episode terminated: {}/{}, step: {}, reward: {}, time: {}".format(e, self.num_episodes, t, np.mean(rewards), time.time() - walltime))
+                    print("episode terminated: {}/{}, step: {}, mean reward: {}, time: {}".format(e, self.num_episodes, t, np.mean(rewards), time.time() - walltime))
                     sys.stdout.flush()
                     break
 

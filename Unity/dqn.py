@@ -13,7 +13,7 @@ from yaml_loader import read_params
 import os
 from parser import get_dqn_parser
 
-YAML_FILE = "yamls/mac_dqn.yaml"
+YAML_FILE = "yamls/linux_dqn.yaml"
 
 actions = [i for i in range(3)] # 0 left 1 straight 2 right
 # actions = [np.ones(3) for _ in range(3)]
@@ -113,7 +113,7 @@ class DQNAgent(Agent):
         target = np.where(dones == 0, rewards + self.gamma * np.max(targets, axis=1), rewards)
         for i in range(batch_size):
             targets[i][actions.astype(int)[i]] = target[i]
-        self.model.fit([observations, states], targets, epochs=1, verbose=0)
+        self.model.fit([observations, states], targets, epochs=1, verbose=1)
         self.num_train_steps += 1
         if self.num_train_steps % self.target_hard_update_interval==0:
             self.target_model = keras.models.clone_model(self.model)
@@ -129,6 +129,7 @@ class DQNAgent(Agent):
     def heading_reward(self, brainInf, nextBrainInf, action):
         reward = 0
         #exponential function of dist
+        reward += 10.0 / brainInf.vector_observations[0][1]
         collision = nextBrainInf.vector_observations[0][-1]
         # print(collision)
         #maintains state
@@ -136,8 +137,8 @@ class DQNAgent(Agent):
 
         goal = int(nextBrainInf.local_done[0] and not self.has_collided)
         reward += collision * -1000
-        reward += abs(nextBrainInf.vector_observations[0][0]) * -0.1 # heading diff (normalized -1 to 1 already)
-        reward += 5000 * goal
+        reward += abs(nextBrainInf.vector_observations[0][0]) * -10.0 # heading diff (normalized -1 to 1 already)
+        reward += 20000 * goal
 
         # if we are done, reset self.has_collided (counts as episode reset)
         if goal:
@@ -169,6 +170,9 @@ if __name__ == "__main__":
     params = read_params(yaml)
 
     if params['gpu']['device'] >= 0:
+        os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
+        #from tensorflow.python.client import device_lib
+        #print(device_lib.list_local_devices())
         os.environ["CUDA_VISIBLE_DEVICES"]=str(params['gpu']['device'])
 
     # env = UnityEnvironment(file_name="drone_sim_external", worker_id=0)
