@@ -1,13 +1,14 @@
 # YAML for linux DQN configuration
 
 train:
-  max_episode_length: 5000
+  max_episode_length: 400
   num_episodes: 10000
   batch_size: 32
-  max_replay_len: 2000
+  max_replay_len: 1000
   model_file: "dqn_model.h5"
-  train_period: 5
+  train_period: 5 #roughly once a second
   train_on_demonstrations: True
+  demonstration_eval_episodes: 0
   train_after_episode: False
 
 inference:

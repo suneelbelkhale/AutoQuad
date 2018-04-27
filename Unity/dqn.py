@@ -10,7 +10,7 @@ from agent import Agent
 import keras
 from yaml_loader import read_params
 
-import os
+import os, sys
 from parser import get_dqn_parser
 
 YAML_FILE = "yamls/linux_dqn.yaml"
@@ -22,10 +22,8 @@ class DQNAgent(Agent):
     def __init__(self, observation_size, state_size, action_size, max_replay_len=2000):
 
         super().__init__(observation_size, state_size, action_size, max_replay_len=max_replay_len)
-        self.gamma = 0.99    # discount rate
-        self.epsilon = 1.0  # exploration rate
-        self.epsilon_min = 0.01
-        self.epsilon_decay = 0.995
+        self.gamma = 0.995    # discount rate
+        self.set_epsilons(1.0, 0.999, 0.03)
         self.learning_rate = 0.001
         self._build_model()
         self.target_hard_update_interval = 100
@@ -50,7 +48,6 @@ class DQNAgent(Agent):
         observation_model.add(Flatten())
         observation_model.add(Dense(128, activation='relu'))
         observation_model.add(Dense(16, activation='relu'))
-        
         #processing state
 
         state_input = Input(shape=self.state_size)
@@ -77,10 +74,11 @@ class DQNAgent(Agent):
     # def remember(self, state, action, reward, next_state, done):
     #     self.replay_buffer.append((state, action, reward, next_state, done))
 
-    def act(self, state, observation):
-        if np.random.rand() <= self.epsilon:
+    def act(self, state, observation, greedy=False):
+        if not greedy and np.random.rand() <= self.epsilon:
             return actions[random.randrange(self.action_size)]
         act_values = self.model.predict([observation, state])
+
         return actions[np.argmax(act_values[0])] # returns action
 
     def train(self, batch_size):
@@ -113,18 +111,39 @@ class DQNAgent(Agent):
         target = np.where(dones == 0, rewards + self.gamma * np.max(targets, axis=1), rewards)
         for i in range(batch_size):
             targets[i][actions.astype(int)[i]] = target[i]
-        self.model.fit([observations, states], targets, epochs=1, verbose=1)
+        self.model.fit([observations, states], targets, epochs=1, verbose=0)
         self.num_train_steps += 1
         if self.num_train_steps % self.target_hard_update_interval==0:
             self.target_model = keras.models.clone_model(self.model)
             self.target_model.set_weights(self.model.get_weights())
 
-        if self.epsilon > self.epsilon_min:
-            self.epsilon *= self.epsilon_decay
-
     def compute_reward(self, brainInf, nextBrainInf, action):
         # return reward
-        return self.heading_reward(brainInf, nextBrainInf, action)
+        return self.combined_reward_1(brainInf, nextBrainInf, action)
+
+
+    def combined_reward_1(self, brainInf, nextBrainInf, action):
+        dist = brainInf.vector_observations[0][1]
+        heading = brainInf.vector_observations[0][0]
+        # 20000 * 0.4^dist, spike reward at the end, but at least differentiable
+        dist_reward = 80000 * (0.7**dist)
+        # heading_reward: has more influence throughout (thus proportional to distance under 40units away)
+        # -32 x^2 + 2 , -45 to 45 degrees is the "positive reward" range
+        heading_reward = -16 * heading**2 + 1
+        #print("d: %.1f, dr: %.2f  ||  h: %.3f, hr: %.2f" % (dist, dist_reward, heading, heading_reward))
+        sys.stdout.flush()
+        #self.has_collided = self.has_collided or collision
+        collision = nextBrainInf.vector_observations[0][-1] #nextBrainInf.vector_observations[0][-1]
+        if collision:
+            print("COLLIDED")
+            sys.stdout.flush()
+            reward = -20000
+        else:
+            reward = dist_reward + heading_reward
+
+        return reward
+
+
 
     def heading_reward(self, brainInf, nextBrainInf, action):
         reward = 0
@@ -143,6 +162,7 @@ class DQNAgent(Agent):
         # if we are done, reset self.has_collided (counts as episode reset)
         if goal:
             print("reached goal")
+            sys.stdout.flush()
             self.has_collided = False
         return reward
 

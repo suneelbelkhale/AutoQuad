@@ -5,6 +5,14 @@ import sys
 
 from unityagents import BrainInfo
 
+
+#utility
+
+true_print = print
+def print(*args):
+    true_print(*args)
+    sys.stdout.flush()
+
 class RunAgent:
 
     def __init__(self, agent, args, demonstrations=False):
@@ -25,6 +33,7 @@ class RunAgent:
         self.batch_size = args['train']['batch_size']
         self.train_period = args['train']['train_period']
         self.train_on_demonstrations = args['train']['train_on_demonstrations']
+        self.demonstration_eval_episodes = args['train']['demonstration_eval_episodes']
         self.train_after_episode = args['train']['train_after_episode']
         self.model_file = args['train']['model_file']
         #inference
@@ -42,7 +51,11 @@ class RunAgent:
         states_taken = np.load("demonstrated_states.npz")
         observations_taken = np.load("demonstrated_observations.npz")
         actions_taken = np.load("demonstrated_actions.npz")
-        
+        #import ipdb; ipdb.set_trace();
+        states_taken = states_taken.f.arr_0
+        observations_taken= observations_taken.f.arr_0
+        actions_taken = actions_taken.f.arr_0
+
         total_seen = 0
 
         for ep in range(len(states_taken)):
@@ -52,7 +65,7 @@ class RunAgent:
 
             print("Training on demonstration:", ep)
             #loop over episode
-            for i in range(len(these_states) - 1):
+            for i in range(len(states_taken[ep]) - 1):
                 next_states = states_taken[ep][i+1]
                 next_observations = observations_taken[ep][i+1]
                 next_actions = actions_taken[ep][i+1]
@@ -70,7 +83,7 @@ class RunAgent:
                 #artificial boost to reward --> must check for arficial zero issues
                 # (discount ^ numstepsleft) * TERMINAL_REWARD
                 # logically boost the paths that have been shown to you
-                reward += (0.9 ** (len(these_states) - 1 - i)) * 20000
+                reward = max(reward, 0) + 100
 
                 sample = ((these_states, these_observations),
                             these_actions,
@@ -82,15 +95,17 @@ class RunAgent:
                 self._agent.store_sample(sample)
                 total_seen += 1
 
-                if total_seen > self.batch_size:
-                    if total_seen % self.freqency == 0:
-                        self._agent.train(batch_size=self.batch_size)
+                if total_seen > self.batch_size*2:
+                    if total_seen % (self.train_period) == 0:
+                        self._agent.train(batch_size=self.batch_size*2)
 
 
                 these_states = next_states
                 these_observations = next_observations
                 these_actions = next_actions
 
+        print("Looped over %d demonstrated samples" % total_seen)
+        return total_seen > 0
 
     def run(self, load=False):
         if self.only_inference:
@@ -99,7 +114,7 @@ class RunAgent:
         else:
             print("-- Running TRAINING on %d episodes of length %d -- \n" % (self.num_episodes, self.max_episode_length))
             self.run_training(load)
-    
+
     def run_training(self, train_mode=True, load=False): #batch_size=32, num_episodes=1, max_episode_length=1000, train_period=3, train_after_episode=False, train_mode=False):
 
         if load:
@@ -109,7 +124,9 @@ class RunAgent:
                 print("Could not load from file:", str(e))
 
         if self.train_on_demonstrations:
-            self.train_demonstrations()
+            success = self.train_demonstrations()
+            if success:
+                self.dem_ep_count = 0 #basically runs trajectory mostly greedily first
 
         for e in range(self.num_episodes):
             walltime = time.time()
@@ -122,17 +139,19 @@ class RunAgent:
 
             rewards = []
             done = False
-            
+
             print("-- Episode %d --" % e)
             sys.stdout.flush()
+
+            greedy = e < self.demonstration_eval_episodes
 
             for t in range(self.max_episode_length):
                 #generalized act function takes in state and observations (images)
 
-                action = self._agent.act(brainInf.vector_observations, p_observation)
+                action = self._agent.act(brainInf.vector_observations, p_observation, greedy=greedy)
 
                 nextBrainInf = self._env.step(action)['DroneBrain']
-                
+
                 done = brainInf.local_done[0]
                 #print(brainInf.local_done)
                 reward = self._agent.compute_reward(brainInf, nextBrainInf, action)
@@ -158,14 +177,15 @@ class RunAgent:
                     sys.stdout.flush()
 
                 if done:
-                    print("episode terminated: {}/{}, step: {}, mean reward: {}, time: {}".format(e, self.num_episodes, t, np.mean(rewards), time.time() - walltime))
-                    sys.stdout.flush()
                     break
-
 
                 p_observation = next_p_observation
                 brainInf = nextBrainInf
 
+            #LOGGING
+            print("Episode {}/{} completed, \n\t total steps: {},\n\t total reward: {},\n\t mean reward: {}, \n\t max reward: {}, \n\t min reward: {},  \n\t greedy: {}, \n\t epsilon: {}, \n\t sim time: {}".format(e, self.num_episodes, t, np.sum(rewards),
+                  np.mean(rewards), np.max(rewards), np.min(rewards), greedy,
+                             self._agent.epsilon, time.time() - walltime))
             # train after episode
             if self.train_after_episode and len(self._agent.replay_buffer) > self.batch_size:
                 walltime = time.time()
@@ -177,6 +197,9 @@ class RunAgent:
             # save after an episode
             if e % 10 == 0:
                 self._agent.save(self.model_file)
+
+            # update epsilon after each episode
+            self._agent.epsilon_update()
 
     def run_inference(self, train_mode=False):
         self._agent.load(self.model_file)
@@ -193,27 +216,30 @@ class RunAgent:
 
             rewards = []
             done = False
-            
+
             print("-- Episode %d --" % e)
 
             for t in range(self.max_episode_length):
                 #generalized act function takes in state and observations (images)
 
-                action = self._agent.act(brainInf.vector_observations, p_observation)
+                action = self._agent.act(brainInf.vector_observations,
+                                         p_observation, greedy=True)
 
                 nextBrainInf = self._env.step(action)['DroneBrain']
-                
+
                 done = brainInf.local_done[0]
                 # print(brainInf.local_done)
                 reward = self._agent.compute_reward(brainInf, nextBrainInf, action)
                 rewards.append(reward)
 
                 if done:
-                    print("episode terminated: {}/{}, step: {}, reward: {}, time: {}".format(
-                        e, self.num_episodes, t, np.mean(rewards), time.time() - walltime))
-                    break
+                   break
 
                 brainInf = nextBrainInf
+
+            #LOGGING
+            print("Episode {}/{} completed, \n\t total steps: {},\n\t total reward: {},\n\t mean reward: {},\n\t sim time: {}".format(e, self.num_episodes, t, np.sum(rewards), np.mean(rewards), time.time() - walltime))
+
 
         print("---------------------------")
         print("||  Inference Completed  ||")

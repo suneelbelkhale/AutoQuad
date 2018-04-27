@@ -14,6 +14,7 @@ class Agent:
         self.action_size = action_size
         self.replay_buffer = deque(maxlen=max_replay_len)
         self.model = Sequential()
+        self.set_epsilons(0.0, 0.0, 0.0)
 
     #processes and returns an observation, can also handle compression, buffer stores the output of this
     # OVERRIDE THIS
@@ -22,7 +23,7 @@ class Agent:
 
     #returns action, assume obs is preprocessed already
     # OVERRIDE THIS
-    def act(self, state, observation):
+    def act(self, state, observation, greedy=False):
         return 0
 
     # OVERRIDE THIS
@@ -43,6 +44,19 @@ class Agent:
             self.replay_buffer.append(sample)
         else:
             print("Cannot store sample -- incorrect length")
+
+    #returns current epsilon, and decay rate in a tuple
+    def get_epsilons(self):
+        return self.epsilon, self.epsilon_decay, self.epsilon_min
+
+    def set_epsilons(self, epsilon, epsilon_decay, epsilon_min):
+        self.epsilon = epsilon
+        self.epsilon_decay = epsilon_decay
+        self.epsilon_min = epsilon_min
+
+    def epsilon_update(self):
+        if self.epsilon > self.epsilon_min:
+            self.epsilon *= self.epsilon_decay
 
     def load(self, name):
         self.model.load_weights(name)
