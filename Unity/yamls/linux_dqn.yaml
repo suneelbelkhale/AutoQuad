@@ -9,6 +9,7 @@ train:
   train_period: 5 #roughly once a second
   train_on_demonstrations: True
   demonstration_eval_episodes: 0
+  demonstration_epochs: 4 #times to train through each demonstration
   train_after_episode: False
 
 inference:

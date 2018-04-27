@@ -34,6 +34,7 @@ class RunAgent:
         self.train_period = args['train']['train_period']
         self.train_on_demonstrations = args['train']['train_on_demonstrations']
         self.demonstration_eval_episodes = args['train']['demonstration_eval_episodes']
+        self.demonstration_epochs = args['train']['demonstration_epochs']
         self.train_after_episode = args['train']['train_after_episode']
         self.model_file = args['train']['model_file']
         #inference
@@ -59,50 +60,52 @@ class RunAgent:
         total_seen = 0
 
         for ep in range(len(states_taken)):
-            these_states = states_taken[ep][0]
-            these_observations = observations_taken[ep][0]
-            these_actions = actions_taken[ep][0]
-
             print("Training on demonstration:", ep)
             #loop over episode
-            for i in range(len(states_taken[ep]) - 1):
-                next_states = states_taken[ep][i+1]
-                next_observations = observations_taken[ep][i+1]
-                next_actions = actions_taken[ep][i+1]
+            for epoch in range(self.demonstration_epochs):
+                print("EPOCH: %d/%d" % (epoch, self.demonstration_epochs))
+                for i in reversed(range(len(states_taken[ep]) - 1)):
+                    these_states = states_taken[ep][i]
+                    these_observations = observations_taken[ep][i]
+                    these_actions = actions_taken[ep][i]
 
-                done = i == len(these_states) - 1
+                    next_states = states_taken[ep][i+1]
+                    next_observations = observations_taken[ep][i+1]
+                    next_actions = actions_taken[ep][i+1]
 
-                this_bi = BrainInfo(these_observations, these_states, None)
-                next_bi = BrainInfo(next_observations, next_states, None)
+                    done = i == len(these_states) - 1
 
-                this_bi.local_done = [False]
-                next_bi.local_done = [done]
+                    this_bi = BrainInfo(these_observations, these_states, None)
+                    next_bi = BrainInfo(next_observations, next_states, None)
 
-                reward = self._agent.compute_reward(this_bi, next_bi, these_actions)
+                    this_bi.local_done = [False]
+                    next_bi.local_done = [done]
 
-                #artificial boost to reward --> must check for arficial zero issues
-                # (discount ^ numstepsleft) * TERMINAL_REWARD
-                # logically boost the paths that have been shown to you
-                reward = max(reward, 0) + 100
+                    reward = self._agent.compute_reward(this_bi, next_bi, these_actions)
 
-                sample = ((these_states, these_observations),
-                            these_actions,
-                            reward,
-                            (next_states, next_observations),
-                            done
-                        )
+                    #artificial boost to reward --> must check for arficial zero issues
+                    # (discount ^ numstepsleft) * TERMINAL_REWARD
+                    # logically boost the paths that have been shown to you
+                    reward = max(reward, 0) + 100
 
-                self._agent.store_sample(sample)
-                total_seen += 1
+                    sample = ((these_states, these_observations),
+                                these_actions,
+                                reward,
+                                (next_states, next_observations),
+                                done
+                            )
 
-                if total_seen > self.batch_size*2:
-                    if total_seen % (self.train_period) == 0:
-                        self._agent.train(batch_size=self.batch_size*2)
+                    self._agent.store_sample(sample)
+                    total_seen += 1
+
+                    if total_seen > self.batch_size*2:
+                        if total_seen % (self.train_period) == 0:
+                            self._agent.train(batch_size=self.batch_size*2)
 
 
-                these_states = next_states
-                these_observations = next_observations
-                these_actions = next_actions
+                    #these_states = next_states
+                    #these_observations = next_observations
+                    #these_actions = next_actions
 
         print("Looped over %d demonstrated samples" % total_seen)
         return total_seen > 0

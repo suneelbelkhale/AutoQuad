@@ -125,21 +125,26 @@ class DQNAgent(Agent):
     def combined_reward_1(self, brainInf, nextBrainInf, action):
         dist = brainInf.vector_observations[0][1]
         heading = brainInf.vector_observations[0][0]
+        velocity = brainInf.vector_observations[0][2] #forward vel
+        collision = nextBrainInf.vector_observations[0][-1] #nextBrainInf.vector_observations[0][-1]
         # 20000 * 0.4^dist, spike reward at the end, but at least differentiable
-        dist_reward = 80000 * (0.7**dist)
+        dist_reward = 30000 * (0.7**(dist-15))
         # heading_reward: has more influence throughout (thus proportional to distance under 40units away)
         # -32 x^2 + 2 , -45 to 45 degrees is the "positive reward" range
         heading_reward = -16 * heading**2 + 1
+
+        velocity_reward = -100 if abs(velocity) < 0.15 else 0 # step function
+
+        #print("vel: %.2f" % velocity)
         #print("d: %.1f, dr: %.2f  ||  h: %.3f, hr: %.2f" % (dist, dist_reward, heading, heading_reward))
         sys.stdout.flush()
         #self.has_collided = self.has_collided or collision
-        collision = nextBrainInf.vector_observations[0][-1] #nextBrainInf.vector_observations[0][-1]
         if collision:
             print("COLLIDED")
             sys.stdout.flush()
             reward = -20000
         else:
-            reward = dist_reward + heading_reward
+            reward = dist_reward + heading_reward + velocity_reward
 
         return reward
 
