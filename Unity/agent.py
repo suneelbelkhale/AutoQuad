@@ -22,8 +22,10 @@ class Agent:
         return observation
 
     #returns action, assume obs is preprocessed already
+    #set greedy False = use epsilon greedy
+    #set training False = inference
     # OVERRIDE THIS
-    def act(self, state, observation, greedy=False):
+    def act(self, state, observation, greedy=False, training=True):
         return 0
 
     # OVERRIDE THIS

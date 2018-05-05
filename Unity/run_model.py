@@ -9,6 +9,9 @@ from logger import Logger
 
 from yaml_loader import read_params
 
+
+from strategy import RandomArcStrategy, EGreedyArcStrategy
+
 #utility
 
 # true_print = print
@@ -46,6 +49,8 @@ class RunAgent:
         self.demonstration_eval_episodes = args['train']['demonstration_eval_episodes']
         self.demonstration_epochs = args['train']['demonstration_epochs']
         self.train_after_episode = args['train']['train_after_episode']
+        self.reinforce_good_episodes = args['train']['reinforce_good_episodes']
+        self.good_ep_thresh = args['train']['good_ep_thresh']
         self.model_file = args['train']['model_file']
         #inference
         self.only_inference = args['inference']['only_inference']
@@ -124,15 +129,17 @@ class RunAgent:
         self.lg.print("Looped over %d demonstrated samples" % total_seen)
         return total_seen > 0
 
-    def run(self, load=False):
+    #must pass in exploration_strategy object for training
+    def run(self, load=False, exploration_strategy=None):
         if self.only_inference:
             self.lg.print("-- Running INFERENCE on %d episodes of length %d -- \n" % (self.num_inference_episodes, self.max_episode_length), lvl="info")
             self.run_inference()
         else:
             self.lg.print("-- Running TRAINING on %d episodes of length %d -- \n" % (self.num_episodes, self.max_episode_length), lvl="info")
-            self.run_training(load)
-
-    def run_training(self, train_mode=True, load=False): #batch_size=32, num_episodes=1, max_episode_length=1000, train_period=3, train_after_episode=False, train_mode=False):
+            self.run_training(load=load, exploration_strategy)
+    
+    #must pass in exploration_strategy object
+    def run_training(self, sim_train_mode=True, load=False, exploration_strategy): #batch_size=32, num_episodes=1, max_episode_length=1000, train_period=3, train_after_episode=False, train_mode=False):
 
         if load:
             try:
@@ -149,7 +156,7 @@ class RunAgent:
             walltime = time.time()
 
             #reset
-            brainInf = self._env.reset(train_mode=train_mode)['DroneBrain']
+            brainInf = self._env.reset(train_mode=sim_train_mode)['DroneBrain']
             # import ipdb; ipdb.set_trace()
 
             p_observation = self._agent.preprocess_observation(brainInf.visual_observations[0])
@@ -162,10 +169,21 @@ class RunAgent:
 
             greedy = e < self.demonstration_eval_episodes
 
+            episode_samples = []
+
+            if exploration_strategy is not None:
+                trajectory = exploration_strategy.generate_trajectory(args={})
+            else:
+                trajectory = None
+
             for t in range(self.max_episode_length):
                 #generalized act function takes in state and observations (images)
 
-                action = self._agent.act(brainInf.vector_observations, p_observation, greedy=greedy)
+                if trajectory is None:
+                    action = self._agent.act(brainInf.vector_observations, p_observation, greedy=greedy)
+                else:
+                    #use exploration strategy
+                    action = next(trajectory)
 
                 nextBrainInf = self._env.step(action)['DroneBrain']
 
@@ -177,12 +195,14 @@ class RunAgent:
                 next_p_observation = self._agent.preprocess_observation(nextBrainInf.visual_observations[0])
 
                 #stores processed things
-                self._agent.store_sample((  (brainInf.vector_observations[0], p_observation), 
-                                            action,
-                                            reward,
-                                            (nextBrainInf.vector_observations[0], next_p_observation),
-                                            done    ))
+                sample = (  (brainInf.vector_observations[0], p_observation), 
+                            action,
+                            reward,
+                            (nextBrainInf.vector_observations[0], next_p_observation),
+                            done    )
 
+                episode_samples.append(sample)
+                self._agent.store_sample(sample)
 
                 #train every experience here
                 if not self.train_after_episode and len(self._agent.replay_buffer) > self.batch_size:
@@ -219,6 +239,12 @@ class RunAgent:
                     self._agent.train(self.batch_size)
                 self.lg.print("training complete in: {}".format(time.time() - walltime))
                 sys.stdout.flush()
+
+            #good episode reinforcement
+            if np.sum(rewards) >= self.good_ep_thresh:
+                print("-- SUCCESSFUL EPISODE. Training More -- ")
+                new_batch_size = min(len(self._agent.replay_buffer), self.batch_size * self.reinforce_good_episodes)
+                self._agent.train(new_batch_size)
 
             # save after an episode
             if e % 10 == 0:

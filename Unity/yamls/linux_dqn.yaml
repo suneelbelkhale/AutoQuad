@@ -11,6 +11,8 @@ train:
   demonstration_eval_episodes: 5
   demonstration_epochs: 4 #times to train through each demonstration
   train_after_episode: False
+  reinforce_good_episodes: 10
+  good_ep_thresh: 15000
 
 inference:
   only_inference: False

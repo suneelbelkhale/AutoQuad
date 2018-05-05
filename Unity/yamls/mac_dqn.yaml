@@ -11,6 +11,8 @@ train:
   demonstration_eval_episodes: 5
   demonstration_epochs: 2
   train_after_episode: False
+  reinforce_good_episodes: 0
+  good_ep_thresh: 15000
 
 inference:
   only_inference: True
