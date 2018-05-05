@@ -13,3 +13,4 @@ Unity/linux_builds/
 *.npz
 *.h5
 train_output.txt
+.DS_Store
