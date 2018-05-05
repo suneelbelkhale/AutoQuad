@@ -1,0 +1,80 @@
+4/26/2018 1:17:46 PM
+ 
+Log
+Start BOUNDS
+UnityEngine.Debug:Log(Object)
+DroneAgent:InitializeAgent() (at /Users/alexchan/Documents/college/uavs/autoquad/DroneSim/Assets/ML-Agents/Template/Scripts/DroneAgent.cs:29)
+Agent:OnEnable() (at /Users/alexchan/Documents/college/uavs/autoquad/DroneSim/Assets/ML-Agents/Scripts/Agent.cs:95)
+
+Log
+(4.6, -0.9, 4.2)
+UnityEngine.Debug:Log(Object)
+DroneAgent:InitializeAgent() (at /Users/alexchan/Documents/college/uavs/autoquad/DroneSim/Assets/ML-Agents/Template/Scripts/DroneAgent.cs:31)
+Agent:OnEnable() (at /Users/alexchan/Documents/college/uavs/autoquad/DroneSim/Assets/ML-Agents/Scripts/Agent.cs:95)
+
+Log
+(-4.6, -0.9, -4.2)
+UnityEngine.Debug:Log(Object)
+DroneAgent:InitializeAgent() (at /Users/alexchan/Documents/college/uavs/autoquad/DroneSim/Assets/ML-Agents/Template/Scripts/DroneAgent.cs:32)
+Agent:OnEnable() (at /Users/alexchan/Documents/college/uavs/autoquad/DroneSim/Assets/ML-Agents/Scripts/Agent.cs:95)
+
+Log
+Velocity(0.0, 0.4, 0.0)
+UnityEngine.Debug:Log(Object)
+VelocityControl:Update() (at /Users/alexchan/Documents/college/uavs/autoquad/DroneSim/Assets/VelocityControl/VelocityControl.cs:91)
+
+Log
+Desired Velocity(0.0, -1.0, 0.0)
+UnityEngine.Debug:Log(Object)
+VelocityControl:Update() (at /Users/alexchan/Documents/college/uavs/autoquad/DroneSim/Assets/VelocityControl/VelocityControl.cs:92)
+
+Log
+Desired Acceleration(0.0, -2.8, 0.0)
+UnityEngine.Debug:Log(Object)
+VelocityControl:Update() (at /Users/alexchan/Documents/college/uavs/autoquad/DroneSim/Assets/VelocityControl/VelocityControl.cs:93)
+
+Log
+Angles(0.0, 0.0, 0.0)
+UnityEngine.Debug:Log(Object)
+VelocityControl:Update() (at /Users/alexchan/Documents/college/uavs/autoquad/DroneSim/Assets/VelocityControl/VelocityControl.cs:94)
+
+Log
+Desired Angles(0.0, 0.0, 0.0)
+UnityEngine.Debug:Log(Object)
+VelocityControl:Update() (at /Users/alexchan/Documents/college/uavs/autoquad/DroneSim/Assets/VelocityControl/VelocityControl.cs:95)
+
+Log
+Angular Velocity(0.0, 0.0, 0.0)
+UnityEngine.Debug:Log(Object)
+VelocityControl:Update() (at /Users/alexchan/Documents/college/uavs/autoquad/DroneSim/Assets/VelocityControl/VelocityControl.cs:96)
+
+Log
+Desired Angular Velocity(0.0, 0.0, -0.2)
+UnityEngine.Debug:Log(Object)
+VelocityControl:Update() (at /Users/alexchan/Documents/college/uavs/autoquad/DroneSim/Assets/VelocityControl/VelocityControl.cs:97)
+
+Log
+Desired Angular Acceleration(0.0, 0.0, -3.2)
+UnityEngine.Debug:Log(Object)
+VelocityControl:Update() (at /Users/alexchan/Documents/college/uavs/autoquad/DroneSim/Assets/VelocityControl/VelocityControl.cs:98)
+
+Log
+Desired Torque(0.0, 0.0, -1.8)
+UnityEngine.Debug:Log(Object)
+VelocityControl:Update() (at /Users/alexchan/Documents/college/uavs/autoquad/DroneSim/Assets/VelocityControl/VelocityControl.cs:99)
+
+Warning
+-- COLLISION --
+
+Log
+COLLISION MSG SENT
+
+Warning
+-- COLLISION --
+
+Warning
+-- COLLISION --
+
+Log
+COLLISION MSG SENT
+
