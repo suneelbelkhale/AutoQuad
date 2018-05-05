@@ -1,0 +1,20 @@
+05-05 01:41:15 INFO: -- Running TRAINING on 10000 episodes of length 400 -- 
+ 
+05-05 01:41:15 INFO: Beginning Training on demonstrations 
+05-05 01:41:16 INFO: Training on demonstration: 0 
+05-05 01:41:16 DEBUG: EPOCH: 0/4 
+05-05 01:41:37 DEBUG: EPOCH: 1/4 
+05-05 01:41:58 DEBUG: EPOCH: 2/4 
+05-05 01:42:20 DEBUG: EPOCH: 3/4 
+05-05 01:42:41 DEBUG: Looped over 6796 demonstrated samples 
+05-05 01:42:42 DEBUG: -- Episode 0 -- 
+05-05 01:42:50 INFO: Episode 0/10000 completed, 
+	 total steps: 399, 
+	 total reward: -38555.72298980652, 
+	 mean reward: -96.3893074745163, 
+	 max reward: -3.1999488745641997, 
+	 min reward: -114.81838749317109, 
+	 greedy: True, 
+	 epsilon: 1.0, 
+	 sim time: 8.73324966430664 
+05-05 01:42:50 DEBUG: -- Episode 1 -- 

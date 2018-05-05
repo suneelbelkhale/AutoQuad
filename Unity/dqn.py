@@ -9,7 +9,7 @@ from run_model import RunAgent
 from agent import Agent
 import keras
 from yaml_loader import read_params
-
+from strategy import RandomArcStrategy, EGreedyArcStrategy
 import os, sys
 from parser import get_dqn_parser
 
@@ -221,10 +221,12 @@ if __name__ == "__main__":
     #num_episodes = params['train']['num_episodes']
     #max_episode_length = params['train']['max_episode_length']
 
+    exploration_strategy = RandomArcStrategy(action_size=3, args={})
+
     #runner.run(batch_size=batch_size, num_episodes=num_episodes, max_episode_length=max_episode_length, train_mode=True)
     if parsed_args.type != 2:
         runner = RunAgent(agent, params)
-        runner.run()
+        runner.run(exploration_strategy=exploration_strategy)
     else:
         runner = RunAgent(agent, params, demonstrations=True)
         runner.run_demonstrations()
