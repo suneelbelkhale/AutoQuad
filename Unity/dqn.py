@@ -24,7 +24,7 @@ class DQNAgent(Agent):
         super().__init__(observation_size, state_size, action_size, max_replay_len=max_replay_len)
         self.gamma = 0.995    # discount rate
         self.set_epsilons(1.0, 0.999, 0.03)
-        self.learning_rate = 0.001
+        self.learning_rate = 0.005
         self._build_model()
         self.target_hard_update_interval = 100
         self.num_train_steps = 0
@@ -42,7 +42,11 @@ class DQNAgent(Agent):
                          input_shape=self.observation_size))
         observation_model.add(Conv2D(64, kernel_size=(4, 4), strides=2,
                          activation='relu'))
+        observation_model.add(Conv2D(64, kernel_size=(3, 3), strides=1,
+                         activation='relu'))
         observation_model.add(Conv2D(32, kernel_size=(3, 3), strides=1,
+                         activation='relu'))
+        observation_model.add(Conv2D(16, kernel_size=(3, 3), strides=2,
                          activation='relu'))
         observation_model.add(Flatten())
         observation_model.add(Dense(128, activation='relu'))
@@ -59,6 +63,7 @@ class DQNAgent(Agent):
 
         concatenated = keras.layers.concatenate([observation_model(observation_input), state_model(state_input)])
         output = Dense(64, activation='relu')(concatenated)
+        output = Dense(32, activation='relu')(output)
         output = Dense(self.action_size, activation='linear')(output)
 
         self.model = Model(inputs=[observation_input, state_input], outputs=output)
