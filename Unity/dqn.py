@@ -13,7 +13,7 @@ from yaml_loader import read_params
 import os, sys
 from parser import get_dqn_parser
 
-YAML_FILE = "yamls/mac_dqn.yaml"
+YAML_FILE = "yamls/linux_dqn.yaml"
 
 actions = [i for i in range(3)] # 0 left 1 straight 2 right
 # actions = [np.ones(3) for _ in range(3)]

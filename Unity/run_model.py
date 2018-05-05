@@ -62,7 +62,7 @@ class RunAgent:
         self.console_lvl = args['logging']['console_lvl']
 
     def create_env(self, file_name):
-        self._env = UnityEnvironment(file_name=file_name, worker_id=0)
+        self._env = UnityEnvironment(file_name=file_name, worker_id=1)
 
     #gives them pretty high reward
     def train_demonstrations(self):
@@ -136,10 +136,12 @@ class RunAgent:
             self.run_inference()
         else:
             self.lg.print("-- Running TRAINING on %d episodes of length %d -- \n" % (self.num_episodes, self.max_episode_length), lvl="info")
-            self.run_training(load=load, exploration_strategy)
-    
+            self.run_training(load=load,
+                              exploration_strategy=exploration_strategy)
+ 
     #must pass in exploration_strategy object
-    def run_training(self, sim_train_mode=True, load=False, exploration_strategy): #batch_size=32, num_episodes=1, max_episode_length=1000, train_period=3, train_after_episode=False, train_mode=False):
+    def run_training(self, sim_train_mode=True, load=False,
+                     exploration_strategy=None): #batch_size=32, num_episodes=1, max_episode_length=1000, train_period=3, train_after_episode=False, train_mode=False):
 
         if load:
             try:

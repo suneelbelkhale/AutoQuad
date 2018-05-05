@@ -4,6 +4,7 @@
 *.pdb
 *.app
 Unity/*.log
+Unity/*.log.bak
 Unity/drone_sim_external_Data/
 Unity/drone_sim_player_Data/
 Unity/drone_sim_external_linux_headless.x86_64

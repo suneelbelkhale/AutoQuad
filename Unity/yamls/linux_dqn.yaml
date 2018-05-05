@@ -24,7 +24,7 @@ demonstrations:
   act_file: "demonstrated_actions.npz"
 
 gpu:
-  device: 1 #-1 means use cpu
+  device: 0 #-1 means use cpu
 
 system: 
   os: "linux"
