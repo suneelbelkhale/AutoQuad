@@ -5,17 +5,25 @@ import sys
 
 from unityagents import BrainInfo
 
+from logger import Logger
+
+from yaml_loader import read_params
 
 #utility
 
-true_print = print
-def print(*args):
-    true_print(*args)
-    sys.stdout.flush()
+# true_print = print
+# def print(*args):
+#     true_print(*args)
+#     sys.stdout.flush()
 
 class RunAgent:
 
+    # args is either params dict or a yaml filename
     def __init__(self, agent, args, demonstrations=False):
+
+        if not isinstance(args, dict):
+            #read as yaml file
+            args = read_params(args)
 
         self._agent = agent
         if demonstrations:
@@ -25,6 +33,8 @@ class RunAgent:
         self._args = args
         self.create_env(self.env_name)
         self.parseArgs(self._args)
+
+        self.lg = Logger(self.log_prefix, display_name="run", console_lvl=self.console_lvl)
 
     def parseArgs(self, args):
         #training
@@ -42,12 +52,16 @@ class RunAgent:
         self.num_inference_episodes = args['inference']['num_inference_episodes']
         #demonstrations
 
+        #logging
+        self.log_prefix = args['logging']['log_prefix']
+        self.console_lvl = args['logging']['console_lvl']
+
     def create_env(self, file_name):
         self._env = UnityEnvironment(file_name=file_name, worker_id=0)
 
     #gives them pretty high reward
     def train_demonstrations(self):
-        print("Beginning Training on demonstrations")
+        self.lg.print("Beginning Training on demonstrations", lvl="info")
 
         states_taken = np.load("demonstrated_states.npz")
         observations_taken = np.load("demonstrated_observations.npz")
@@ -60,10 +74,10 @@ class RunAgent:
         total_seen = 0
 
         for ep in range(len(states_taken)):
-            print("Training on demonstration:", ep)
+            self.lg.print("Training on demonstration:", ep, lvl="info")
             #loop over episode
             for epoch in range(self.demonstration_epochs):
-                print("EPOCH: %d/%d" % (epoch, self.demonstration_epochs))
+                self.lg.print("EPOCH: %d/%d" % (epoch, self.demonstration_epochs))
                 for i in reversed(range(len(states_taken[ep]) - 1)):
                     these_states = states_taken[ep][i]
                     these_observations = observations_taken[ep][i]
@@ -107,15 +121,15 @@ class RunAgent:
                     #these_observations = next_observations
                     #these_actions = next_actions
 
-        print("Looped over %d demonstrated samples" % total_seen)
+        self.lg.print("Looped over %d demonstrated samples" % total_seen)
         return total_seen > 0
 
     def run(self, load=False):
         if self.only_inference:
-            print("-- Running INFERENCE on %d episodes of length %d -- \n" % (self.num_inference_episodes, self.max_episode_length))
+            self.lg.print("-- Running INFERENCE on %d episodes of length %d -- \n" % (self.num_inference_episodes, self.max_episode_length), lvl="info")
             self.run_inference()
         else:
-            print("-- Running TRAINING on %d episodes of length %d -- \n" % (self.num_episodes, self.max_episode_length))
+            self.lg.print("-- Running TRAINING on %d episodes of length %d -- \n" % (self.num_episodes, self.max_episode_length), lvl="info")
             self.run_training(load)
 
     def run_training(self, train_mode=True, load=False): #batch_size=32, num_episodes=1, max_episode_length=1000, train_period=3, train_after_episode=False, train_mode=False):
@@ -124,7 +138,7 @@ class RunAgent:
             try:
                 self._agent.load(self.model_file)
             except Exception as e:
-                print("Could not load from file:", str(e))
+                self.lg.print("Could not load from file:", str(e), "error")
 
         if self.train_on_demonstrations:
             success = self.train_demonstrations()
@@ -143,7 +157,7 @@ class RunAgent:
             rewards = []
             done = False
 
-            print("-- Episode %d --" % e)
+            self.lg.print("-- Episode %d --" % e)
             sys.stdout.flush()
 
             greedy = e < self.demonstration_eval_episodes
@@ -156,7 +170,7 @@ class RunAgent:
                 nextBrainInf = self._env.step(action)['DroneBrain']
 
                 done = brainInf.local_done[0]
-                #print(brainInf.local_done)
+                #self.lg.print(brainInf.local_done)
                 reward = self._agent.compute_reward(brainInf, nextBrainInf, action)
                 rewards.append(reward)
 
@@ -176,7 +190,7 @@ class RunAgent:
                         self._agent.train(self.batch_size)
 
                 if t % 100 == 0:
-                    #print("step", t)
+                    #self.lg.print("step", t)
                     sys.stdout.flush()
 
                 if done:
@@ -186,15 +200,24 @@ class RunAgent:
                 brainInf = nextBrainInf
 
             #LOGGING
-            print("Episode {}/{} completed, \n\t total steps: {},\n\t total reward: {},\n\t mean reward: {}, \n\t max reward: {}, \n\t min reward: {},  \n\t greedy: {}, \n\t epsilon: {}, \n\t sim time: {}".format(e, self.num_episodes, t, np.sum(rewards),
+            episode_str = ( "Episode {}/{} completed,"
+                           " \n\t total steps: {}," 
+                           " \n\t total reward: {},"
+                           " \n\t mean reward: {},"
+                           " \n\t max reward: {},"
+                           " \n\t min reward: {},"
+                           " \n\t greedy: {},"
+                           " \n\t epsilon: {},"
+                           " \n\t sim time: {}" )
+            self.lg.print(episode_str.format(e, self.num_episodes, t, np.sum(rewards),
                   np.mean(rewards), np.max(rewards), np.min(rewards), greedy,
-                             self._agent.epsilon, time.time() - walltime))
+                             self._agent.epsilon, time.time() - walltime), lvl="info")
             # train after episode
             if self.train_after_episode and len(self._agent.replay_buffer) > self.batch_size:
                 walltime = time.time()
                 for i in range(t // self.train_period):
                     self._agent.train(self.batch_size)
-                print("training complete in: {}".format(time.time() - walltime))
+                self.lg.print("training complete in: {}".format(time.time() - walltime))
                 sys.stdout.flush()
 
             # save after an episode
@@ -203,6 +226,8 @@ class RunAgent:
 
             # update epsilon after each episode
             self._agent.epsilon_update()
+
+        self.lg.print("|------------| TRAINING COMPLETE |------------|", lvl="info")
 
     def run_inference(self, train_mode=False):
         self._agent.load(self.model_file)
@@ -220,7 +245,7 @@ class RunAgent:
             rewards = []
             done = False
 
-            print("-- Episode %d --" % e)
+            self.lg.print("-- Episode %d --" % e)
 
             for t in range(self.max_episode_length):
                 #generalized act function takes in state and observations (images)
@@ -231,7 +256,7 @@ class RunAgent:
                 nextBrainInf = self._env.step(action)['DroneBrain']
 
                 done = brainInf.local_done[0]
-                # print(brainInf.local_done)
+                # self.lg.print(brainInf.local_done)
                 reward = self._agent.compute_reward(brainInf, nextBrainInf, action)
                 rewards.append(reward)
 
@@ -241,17 +266,27 @@ class RunAgent:
                 brainInf = nextBrainInf
 
             #LOGGING
-            print("Episode {}/{} completed, \n\t total steps: {},\n\t total reward: {},\n\t mean reward: {},\n\t sim time: {}".format(e, self.num_episodes, t, np.sum(rewards), np.mean(rewards), time.time() - walltime))
+            episode_str = ( "Episode {}/{} completed,"
+                           " \n\t total steps: {}," 
+                           " \n\t total reward: {},"
+                           " \n\t mean reward: {},"
+                           " \n\t max reward: {},"
+                           " \n\t min reward: {},"
+                           " \n\t epsilon: {},"
+                           " \n\t sim time: {}" )
+            # self.lg.print("Episode {}/{} completed, \n\t total steps: {},\n\t total reward: {},\n\t mean reward: {},\n\t sim time: {}".format(e, self.num_episodes, t, np.sum(rewards), np.mean(rewards), time.time() - walltime))
+            self.lg.print(episode_str.format(e, self.num_episodes, t, np.sum(rewards),
+                  np.mean(rewards), np.max(rewards), np.min(rewards),
+                    self._agent.epsilon, time.time() - walltime), lvl="info")
 
-
-        print("---------------------------")
-        print("||  Inference Completed  ||")
-        print("---------------------------")
+        # self.lg.print("---------------------------")
+        # self.lg.print("||  Inference Completed  ||")
+        self.lg.print("|------------| INFERENCE COMPLETE |------------|", lvl="info")
 
 
     def run_demonstrations(self, train_mode=False, load=True):
         # if self._args['system']['os'] == 'linux':
-        #     print("-- Can't run demonstration collection on Linux Headless --")
+        #     self.lg.print("-- Can't run demonstration collection on Linux Headless --")
 
         #TODO make arg
         max_trajectories = 100
@@ -266,7 +301,7 @@ class RunAgent:
                 observations_taken = np.load("demonstrated_observations.npz")
                 actions_taken = np.load("demonstrated_actions.npz")
             except Exception as e:
-                print("Could not load npz from file: " + str(e))
+                self.lg.print("Could not load npz from file: " + str(e))
         
         for i in range(max_trajectories):
             pause = input("Press enter to start demonstration collection")
@@ -296,7 +331,7 @@ class RunAgent:
                 break
         # states_taken.extend(np.ndarray.tolist(states))
         # actions_taken.extend(np.ndarray.tolist(actions))
-        print("-- Saving data --")
+        self.lg.print("-- Saving data --")
         states_taken = np.array(states_taken)
         observations_taken = np.array(observations_taken)
         actions_taken = np.array(actions_taken)
@@ -304,7 +339,7 @@ class RunAgent:
         np.savez_compressed("demonstrated_observations", observations_taken)
         np.savez_compressed("demonstrated_actions", actions_taken)
 
-        print("-- Data successfully saved --")
+        self.lg.print("-- Data successfully saved --")
 
 
 

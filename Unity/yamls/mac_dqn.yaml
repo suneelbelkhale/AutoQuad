@@ -30,4 +30,8 @@ system:
   drone_sim: "drone_sim_external"
   demonstration_drone_sim: "drone_sim_player"
 
+logging:
+  console_lvl: "debug"
+  log_prefix: "log/run_output"
+
 #TODO add model specific params

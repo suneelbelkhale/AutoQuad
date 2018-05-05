@@ -8,7 +8,7 @@ train:
   model_file: "dqn_model.h5"
   train_period: 5 #roughly once a second
   train_on_demonstrations: True
-  demonstration_eval_episodes: 0
+  demonstration_eval_episodes: 5
   demonstration_epochs: 4 #times to train through each demonstration
   train_after_episode: False
 
@@ -29,5 +29,9 @@ system:
   arch: "x86_64"
   drone_sim: "drone_sim_external_linux_headless"
   demonstration_drone_sim: "N/A"
+
+logging:
+  console_lvl: "debug"
+  log_prefix: "log/run_output"
 
 #TODO add model specific params

@@ -1,0 +1,12 @@
+04-27 18:11:30 INFO: -- Running INFERENCE on 10 episodes of length 5000 -- 
+
+04-27 18:11:32 DEBUG: -- Episode 0 --
+04-27 18:11:51 INFO: Episode 0/1000 completed, 
+	 total steps: 43, 
+	 total reward: -21391.412778496742, 
+	 mean reward: -486.16847223856234, 
+	 max reward: 0.2654656012259551, 
+	 min reward: -20000.0, 
+	 epsilon: 1.0, 
+	 sim time: 20.465367078781128
+04-27 18:11:51 DEBUG: -- Episode 1 --

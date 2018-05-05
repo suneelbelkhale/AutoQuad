@@ -13,7 +13,7 @@ from yaml_loader import read_params
 import os, sys
 from parser import get_dqn_parser
 
-YAML_FILE = "yamls/linux_dqn.yaml"
+YAML_FILE = "yamls/mac_dqn.yaml"
 
 actions = [i for i in range(3)] # 0 left 1 straight 2 right
 # actions = [np.ones(3) for _ in range(3)]
@@ -32,7 +32,6 @@ class DQNAgent(Agent):
         self.has_collided = False
 
     def _build_model(self):
-
         #processing images
 
         observation_input = Input(shape=self.observation_size)
@@ -194,6 +193,11 @@ if __name__ == "__main__":
 
     params = read_params(yaml)
 
+    #logging stuff, override yaml's entry
+    if parsed_args.log_prefix:
+        params['logger']['log_prefix'] = parsed_args.log_prefix
+
+    #gpu stuff
     if params['gpu']['device'] >= 0:
         os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
         #from tensorflow.python.client import device_lib
