@@ -1,9 +1,11 @@
-from unityagents import UnityEnvironment
+# from unityagents import UnityEnvironment
+from mlagents.envs import UnityEnvironment
 import numpy as np
 import time
 import sys
 
-from unityagents import BrainInfo
+# from unityagents import BrainInfo
+from mlagents.envs import BrainInfo
 
 from logger import Logger
 

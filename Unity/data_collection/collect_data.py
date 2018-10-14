@@ -1,9 +1,12 @@
-from unityagents import UnityEnvironment
+# from unityagents import UnityEnvironment
+from mlagents.envs import UnityEnvironment
 import time
 import numpy as np
 import argparse
 import datetime
 from datetime import date
+import random
+import matplotlib.pyplot as plt
 
 def if_save(collection, new, do_if):
     if do_if:
@@ -12,6 +15,12 @@ def if_save(collection, new, do_if):
         else:
             return np.append(collection, new, axis=0)
     return None
+
+def visualize_image(ob):
+    plt.cla()
+    ax.imshow(ob.reshape((128,128)), cmap='gray')
+    plt.pause(0.001)
+    plt.draw()
 
 def data_collection(args):
     env = UnityEnvironment(file_name=args.env, worker_id=0)
@@ -40,7 +49,7 @@ def data_collection(args):
         if args.prompt_start_end:
             input("press enter to start")
         done = np.array([[False]])
-        env.reset(train_mode=False)
+        env.reset(train_mode=args.external)
 
         episode_states = None
         episode_obs = None
@@ -52,7 +61,11 @@ def data_collection(args):
         ep_num_samples = 0
         # ROLLOUT
         while not done[0][0]:
-            brainInf = env.step()['DroneBrain']
+            if args.external:
+                brainInf = env.step(random.randint(0,2))['DroneBrain']
+            else:
+                brainInf = env.step()['DroneBrain']
+
             # 1 x 405
             st = brainInf.vector_observations
             # 1 x 128 x 128 x 1
@@ -61,6 +74,9 @@ def data_collection(args):
             ac = brainInf.previous_vector_actions
             # 1 x 1
             done = np.array([[brainInf.local_done[0]]])
+
+            if args.visualize:
+                visualize_image(ob[0])
 
             episode_obs = if_save(episode_obs, ob, 'o' in args.config)
             episode_states = if_save(episode_states, st, 's' in args.config)
@@ -150,12 +166,18 @@ def data_collection(args):
         else:
             np.save(output_name_pref + "_dones", dones_to_save)
 
+    env.close()
 
+
+plt.ion()
+ax = plt.subplot()
 
 if __name__ == '__main__':
     acceptable_config_types = ['o','s','a','d']
     parser = argparse.ArgumentParser()
     parser.add_argument("--env", help="environment to run", type=str, default='drone_sim_player')
+    parser.add_argument("--external", help="run external mode, with a random exploration strategy", action='store_true', default=False)
+    # parser.add_argument("--exploration", help="specified exploration strategy if running external: [random, arcs]", type=str, default='random')
     parser.add_argument("--max_trajectories", help="num trajectories to run", type=int, default=1)
     parser.add_argument("--input_obs", help="enter in the np obs file from previously stored runs", type=str, default='')
     parser.add_argument("--input_act", help="enter in the np act file from previously stored runs", type=str, default='')
@@ -164,6 +186,7 @@ if __name__ == '__main__':
     parser.add_argument("--config", help="some period separated combination of " +
                             "\n\t o (visual observations), s (vector observations), a (actions), d (dones)" +
                             "\n\t e.g. 'o.s.a.d' ", type=str, default='o.s.a.d')
+    parser.add_argument("--visualize", help="true if you want to visualize the input images in pyplot", action='store_true')
     parser.add_argument("--new_files", help="true if you want to not append everything", action='store_true')
     parser.add_argument("--prefix", help="this prepends _obs, _actions, etc, where . can be used to denote a time input (e.g. --prefix 'dsim_.'", type=str, default='sim_.')
     parser.add_argument("--no_prompt_save", help="do this to turn off prompting for saving trajectories", action='store_true')
@@ -171,7 +194,7 @@ if __name__ == '__main__':
     parser.add_argument("--output_dir", help="where to output data with ending /", type=str, default='')
     args = parser.parse_args()
     args.config = [el.strip() for el in str.split(args.config, '.') if (el.strip() in acceptable_config_types)]
-    
+
     data_collection(args)
 
 
