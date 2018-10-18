@@ -137,3 +137,71 @@ class EGreedyArcStrategy(ExplorationStrategy):
                 else:
                     #straight
                     yield 1
+                curr_length += 1
+
+
+# similar to epsilon-greedy but choose random action based on network's distribution rather than uniformly
+# requires passing in the action distribution from the network in update(args)
+class BoltzmannArcStrategy(ExplorationStrategy):
+    def __init__(self, action_size, args):
+        ExplorationStrategy.__init__(self, action_size, args)
+        # set up arc
+        self.mean_turn_period = 3 # mean straight moves in between each turn action + 1
+        self.sigma_turn_period = 5 # stddev straight moves in between each turn action + 1
+        self.mean_arc_length = 20 # mean steps per arc
+        self.sigma_arc_length = 10 # stddev steps per arc
+        self.base_left_prob = 0.4 # probability the arc goes left
+        self.best_action = 0 # the current best action (0 or 2)
+        self.epsilon = 0.9 # for picking between best and random
+        self.action_dist = None
+
+        self.update(self.args)
+
+    # must be called at each timestep to correctly update best_action
+    def update(self, args):
+
+        #specifies # straight moves for every turn (i.e, like radius)
+        if "mean_turn_period" in args:
+            self.mean_turn_period = args["mean_turn_period"]
+        
+        if "sigma_turn_period" in args:
+            self.sigma_turn_period = args["sigma_turn_period"]
+
+        if "mean_arc_length" in args:
+            self.mean_arc_length = args["mean_arc_length"]
+
+        if "base_arc_length" in args:
+            self.base_arc_length = args["base_arc_length"]
+
+        if "base_left_prob" in args:
+            self.base_left_prob = args["base_left_prob"]
+
+        if "best_action" in args:
+            self.best_action = args["best_action"]
+
+        if "action_dist" in args:
+            self.action_dist = args["action_dist"]
+
+        if "epsilon" in args:
+            self.epsilon = args["epsilon"]
+
+
+    #returns a generator
+    def generate_trajectory(self, args):
+        curr_length = 0
+        action_dist = args["action_dist"]
+
+        while True:
+
+            #new arc
+            turn_period = max(1, random.gauss(mu=self.mean_turn_period, sigma=self.sigma_turn_period))
+            arc_length = max(1, random.gauss(mu=self.mean_arc_length, sigma=self.sigma_arc_length))
+
+            directed_action = np.random.choice(range(len(action_dist)), p=action_dist)
+
+            while curr_length < arc_length:
+                if curr_length % turn_period == 0:
+                    yield directed_action
+                else:
+                    yield 1
+                curr_length += 1

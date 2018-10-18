@@ -1,5 +1,6 @@
 # from unityagents import UnityEnvironment
 from mlagents.envs import UnityEnvironment
+from env_array import UnityEnvironmentArray
 import numpy as np
 import time
 import sys
@@ -33,10 +34,13 @@ class RunAgent:
         self._agent = agent
         if demonstrations:
             self.env_name = args['system']['demonstration_drone_sim']
+            # self.env_names = [args['system']['demonstration_drone_sim']]
         else:
             self.env_name = args['system']['drone_sim']
+            # self.env_names = [args['system']['drone_sim']]
         self._args = args
         self.create_env(self.env_name)
+        # self.create_envs(self.env_names)
         self.parseArgs(self._args)
 
         self.lg = Logger(self.log_prefix, display_name="run", console_lvl=self.console_lvl)
@@ -65,6 +69,9 @@ class RunAgent:
 
     def create_env(self, file_name):
         self._env = UnityEnvironment(file_name=file_name, worker_id=0)
+
+    # def create_envs(self, file_names):
+    #     self._envs = UnityEnvironmentArray(file_names=file_names)
 
     #gives them pretty high reward
     def train_demonstrations(self):
@@ -159,9 +166,11 @@ class RunAgent:
 
             #reset
             brainInf = self._env.reset(train_mode=sim_train_mode)['DroneBrain']
+            # brainInfs = [brainInf['DroneBrain'] for brainInf in self._envs.reset_array(train_mode=sim_train_mode)]
             # import ipdb; ipdb.set_trace()
 
             p_observation = self._agent.preprocess_observation(brainInf.visual_observations[0])
+            # p_observations = [self._agent.preprocess_observation(brainInf.visual_observations[0]) for brainInf in brainInfs]
 
             rewards = []
             done = False
@@ -174,7 +183,8 @@ class RunAgent:
             episode_samples = []
 
             if exploration_strategy is not None:
-                trajectory = exploration_strategy.generate_trajectory(args={})
+                action_dist = self._agent.act_dist(brainInf.vector_observations, p_observation)
+                trajectory = exploration_strategy.generate_trajectory(args={"best_action": np.argmax(action_dist), "action_dist": action_dist})
             else:
                 trajectory = None
 
@@ -183,11 +193,14 @@ class RunAgent:
 
                 if trajectory is None:
                     action = self._agent.act(brainInf.vector_observations, p_observation, greedy=greedy)
+                    # actions = [self._agent.act(brainInf.vector_observations, p_observation, greedy=greedy) 
+                    #             for brainInf, p_observation in zip(brainInfs, p_observations)]
                 else:
                     #use exploration strategy
                     action = next(trajectory)
 
                 nextBrainInf = self._env.step(action)['DroneBrain']
+                # nextBrainInfs = [brainInf['DroneBrain'] for brainInf in self._envs.step_array(action)]
 
                 done = brainInf.local_done[0]
                 #self.lg.print(brainInf.local_done)

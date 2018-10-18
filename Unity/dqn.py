@@ -9,7 +9,7 @@ from run_model import RunAgent
 from agent import Agent
 import keras
 from yaml_loader import read_params
-
+from strategy import RandomArcStrategy, EGreedyArcStrategy, BoltzmannArcStrategy
 import os, sys
 from parser import get_dqn_parser
 
@@ -84,6 +84,10 @@ class DQNAgent(Agent):
         act_values = self.model.predict([observation, state])
 
         return actions[np.argmax(act_values[0])] # returns action
+
+    def act_dist(self, state, observation):
+        act_values = self.model.predict([observation, state])
+        return act_values[0]
 
     def train(self, batch_size):
         minibatch = self.sample(batch_size)
